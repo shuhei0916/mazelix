@@ -1,17 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { findActiveCue } from "./cue";
+import { type Cue, findActiveCue } from "./cue";
 
 describe("findActiveCue", () => {
-  it("指定した時刻に表示中のキューを返す", () => {
-    const track = [
-      { startMs: 1000, endMs: 3000, text: "こんにちは" },
-      { startMs: 4000, endMs: 6000, text: "元気ですか" },
-    ];
+  const hello: Cue = { startMs: 1000, endMs: 3000, text: "こんにちは" };
+  const howAreYou: Cue = { startMs: 4000, endMs: 6000, text: "元気ですか" };
+  const track = [hello, howAreYou];
 
-    expect(findActiveCue(track, 5000)).toEqual({
-      startMs: 4000,
-      endMs: 6000,
-      text: "元気ですか",
-    });
+  it("指定した時刻に表示中のキューを返す", () => {
+    expect(findActiveCue(track, 5000)).toEqual(howAreYou);
+    expect(findActiveCue(track, 2000)).toEqual(hello);
+  });
+
+  it("指定した時刻に表示中のキューがなければ undefined を返す", () => {
+    expect(findActiveCue(track, 500)).toBeUndefined();
+    expect(findActiveCue(track, 3500)).toBeUndefined();
+    expect(findActiveCue(track, 7000)).toBeUndefined();
+  });
+
+  it("キューの開始時刻ちょうどでは表示する", () => {
+    expect(findActiveCue(track, 1000)).toEqual(hello);
+  });
+
+  it("キューの終了時刻ちょうどでは表示しない", () => {
+    expect(findActiveCue(track, 3000)).toBeUndefined();
   });
 });

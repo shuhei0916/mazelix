@@ -5,5 +5,5 @@ export type Cue = {
 };
 
 export function findActiveCue(track: Cue[], timeMs: number): Cue | undefined {
-  return { startMs: 4000, endMs: 6000, text: "元気ですか" };
+  return track.find((cue) => cue.startMs <= timeMs && timeMs < cue.endMs);
 }
