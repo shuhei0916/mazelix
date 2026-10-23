@@ -11,12 +11,22 @@ export function removeSoundDescriptions(cues: Cue[]): Cue[] {
     .filter((cue) => !SPEAKER_DASHES_ONLY.test(cue.text));
 }
 
+// CC では 1 つの文が複数のキューに分かれるので、前のキューで文が終わったかを持ち回る
 export function normalizeAllCaps(cues: Cue[]): Cue[] {
+  let atSentenceStart = true;
   return cues.map((cue) => {
-    const text = cue.text
-      .toLowerCase()
-      .replace(/\bi\b/g, "I")
-      .replace(/(^|[.?!]\s+)([a-z])/g, (_, before, letter) => before + letter.toUpperCase());
+    const isAllCaps = !/[a-z]/.test(cue.text);
+    const text = isAllCaps ? toSentenceCase(cue.text, atSentenceStart) : cue.text;
+    atSentenceStart = /[.?!]$/.test(cue.text.trim());
     return { ...cue, text };
   });
+}
+
+function toSentenceCase(text: string, atSentenceStart: boolean): string {
+  return text
+    .toLowerCase()
+    .replace(/\bi\b/g, "I")
+    .replace(/(^-?|[.?!]\s+-?)([a-z])/g, (match, before: string, letter: string) =>
+      before === "" && !atSentenceStart ? match : before + letter.toUpperCase(),
+    );
 }

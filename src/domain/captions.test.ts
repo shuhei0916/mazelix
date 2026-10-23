@@ -37,4 +37,22 @@ describe("normalizeAllCaps", () => {
       cue("Stop. Where are you going? Come back!"),
     ]);
   });
+
+  it("前のキューが文の途中で終わっていれば、次のキューは小文字で始める", () => {
+    expect(normalizeAllCaps([cue("I DON'T THINK WE SHOULD"), cue("GO IN THERE.")])).toEqual([
+      cue("I don't think we should"),
+      cue("go in there."),
+    ]);
+  });
+
+  it("話者を示す - の後ろは、新しい文として大文字で始める", () => {
+    expect(normalizeAllCaps([cue("WHERE ARE YOU"), cue("-WAIT!")])).toEqual([
+      cue("Where are you"),
+      cue("-Wait!"),
+    ]);
+  });
+
+  it("小文字を含むキューは、大文字だけではないので変更しない", () => {
+    expect(normalizeAllCaps([cue("Hello, Megamind.")])).toEqual([cue("Hello, Megamind.")]);
+  });
 });
