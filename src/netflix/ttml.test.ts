@@ -1,24 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import { parseTickTime, parseTtml } from "./ttml";
-
-// Netflix の IMSC 1.1 字幕と同じ構造の TTML を組み立てる（文章は自作）
-function ttml(body: string, { tickRate = 10_000_000, styles = "" } = {}): string {
-  return `<?xml version="1.0" encoding="utf-8"?>
-<tt xmlns="http://www.w3.org/ns/ttml" xmlns:ttp="http://www.w3.org/ns/ttml#parameter" xmlns:tts="http://www.w3.org/ns/ttml#styling" ttp:tickRate="${tickRate}" ttp:timeBase="media" xml:lang="ja">
-<head>
-<styling>
-<style xml:id="style0" tts:textAlign="center"/>
-${styles}
-</styling>
-</head>
-<body>
-<div>
-${body}
-</div>
-</body>
-</tt>`;
-}
+import { ttml } from "./ttml.fixture";
 
 describe("parseTickTime", () => {
   it("tick 表記の時刻を、tickRate を使ってミリ秒に変換する", () => {
