@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { fakeBrowser } from "wxt/testing/fake-browser";
-import { getEnglishRatio, setEnglishRatio, watchEnglishRatio } from "./settings";
+import {
+  getEnabled,
+  getEnglishRatio,
+  setEnabled,
+  setEnglishRatio,
+  watchEnabled,
+  watchEnglishRatio,
+} from "./settings";
 
 describe("英語の割合の設定", () => {
   beforeEach(() => {
@@ -54,5 +61,32 @@ describe("英語の割合の設定（変更の監視）", () => {
     await setEnglishRatio(0.1);
 
     expect(received).toEqual([0.8]);
+  });
+});
+
+describe("mazelix の ON/OFF の設定", () => {
+  beforeEach(() => {
+    fakeBrowser.reset();
+  });
+
+  it("まだ保存していなければ ON にする", async () => {
+    expect(await getEnabled()).toBe(true);
+  });
+
+  it("OFF にしたら OFF のまま保存される", async () => {
+    await setEnabled(false);
+
+    expect(await getEnabled()).toBe(false);
+  });
+
+  it("ポップアップで切り替えたら、再生中の画面に知らせる", async () => {
+    const received: boolean[] = [];
+    const unwatch = watchEnabled((enabled) => received.push(enabled));
+
+    await setEnabled(false);
+    unwatch();
+    await setEnabled(true);
+
+    expect(received).toEqual([false]);
   });
 });
