@@ -56,6 +56,8 @@ Netflix の日本語字幕と英語字幕を両方取得し、表示する言語
 - [ ] シークや一時停止に追従する
 
 ## 拡張機能の土台
-- [ ] WXT で Manifest V3 の拡張機能の雛形を作る
-- [ ] netflix.com/watch でだけ content script を動かす
+- [x] WXT で Manifest V3 の拡張機能の雛形を作る
+- [x] ~~netflix.com/watch でだけ content script を動かす~~ → Netflix は SPA なので netflix.com 全体で動かす
+- [ ] Chrome に読み込み、Netflix で動作確認用のバッジが出ることを確認する（ユーザー確認）
+- [ ] 再生ページ（/watch/*）に移ったことを検知する（SPA の画面遷移に追従）
 - [ ] 英語の比率を設定できるようにする（ポップアップ）
