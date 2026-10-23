@@ -54,6 +54,21 @@ describe("prepareMaze", () => {
     expect(subtitleTextAt(maze, 500)).toBe("");
     expect(subtitleTextAt(maze, 2500)).toBe("Parkour!");
   });
+
+  it("ファイル内で 2 行の順番が逆でも、上の行から文が続くものとして大文字を整える", () => {
+    const maze = prepareMaze(
+      {
+        ja: [],
+        en: [
+          { startMs: 0, endMs: 1000, text: "GOING?", verticalPosition: 84.62 },
+          { startMs: 0, endMs: 1000, text: "WHERE ARE YOU", verticalPosition: 79.29 },
+        ],
+      },
+      { englishRatio: 1, random: Math.random },
+    );
+
+    expect(subtitleTextAt(maze, 500)).toBe("Where are you\ngoing?");
+  });
 });
 
 describe("subtitleTextAt", () => {
@@ -64,6 +79,21 @@ describe("subtitleTextAt", () => {
         en: [
           { startMs: 0, endMs: 1000, text: "Where are you" },
           { startMs: 0, endMs: 1000, text: "going?" },
+        ],
+      },
+      { englishRatio: 1, random: Math.random },
+    );
+
+    expect(subtitleTextAt(maze, 500)).toBe("Where are you\ngoing?");
+  });
+
+  it("同時に表示中の字幕は、画面の上にある行から順に並べる", () => {
+    const maze = prepareMaze(
+      {
+        ja: [],
+        en: [
+          { startMs: 0, endMs: 1000, text: "going?", verticalPosition: 84.62 },
+          { startMs: 0, endMs: 1000, text: "Where are you", verticalPosition: 79.29 },
         ],
       },
       { englishRatio: 1, random: Math.random },

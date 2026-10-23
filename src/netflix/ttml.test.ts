@@ -67,4 +67,17 @@ describe("parseTtml", () => {
 
     expect(parseTtml(xml)[0]?.text).toBe("明日また会おう");
   });
+
+  it("region の tts:origin から、行の縦位置（%）を読み取る", () => {
+    const xml = ttml(
+      `<p begin="0t" end="10000000t" region="region1" style="style0">going?</p>
+<p begin="0t" end="10000000t" region="region0" style="style0">Where are you</p>`,
+      {
+        regions: `<region xml:id="region0" tts:extent="45.000% 5.330%" tts:origin="25.000% 79.290%"/>
+<region xml:id="region1" tts:extent="45.000% 5.330%" tts:origin="25.000% 84.620%"/>`,
+      },
+    );
+
+    expect(parseTtml(xml).map((cue) => cue.verticalPosition)).toEqual([84.62, 79.29]);
+  });
 });

@@ -18,6 +18,13 @@ export function parseTtml(xml: string): Cue[] {
       .map((style) => style.getAttribute("xml:id")),
   );
 
+  const regionPositions = new Map(
+    Array.from(doc.getElementsByTagName("region"), (region) => [
+      region.getAttribute("xml:id"),
+      verticalPositionOf(region.getAttributeNS(TTML_STYLING_NS, "origin")),
+    ]),
+  );
+
   function textOf(node: Node): string {
     if (node.nodeType === Node.TEXT_NODE) return node.nodeValue ?? "";
     if (node.nodeName === "br") return "\n";
@@ -27,9 +34,19 @@ export function parseTtml(xml: string): Cue[] {
     return Array.from(node.childNodes, textOf).join("");
   }
 
-  return Array.from(doc.getElementsByTagName("p"), (p) => ({
-    startMs: parseTickTime(p.getAttribute("begin") ?? "", tickRate),
-    endMs: parseTickTime(p.getAttribute("end") ?? "", tickRate),
-    text: textOf(p),
-  }));
+  return Array.from(doc.getElementsByTagName("p"), (p) => {
+    const verticalPosition = regionPositions.get(p.getAttribute("region"));
+    return {
+      startMs: parseTickTime(p.getAttribute("begin") ?? "", tickRate),
+      endMs: parseTickTime(p.getAttribute("end") ?? "", tickRate),
+      text: textOf(p),
+      ...(verticalPosition === undefined ? {} : { verticalPosition }),
+    };
+  });
+}
+
+// tts:origin="25.000% 79.290%" の 2 つ目（縦位置）を取り出す
+function verticalPositionOf(origin: string | null): number | undefined {
+  const y = origin?.split(/\s+/)[1];
+  return y === undefined ? undefined : Number.parseFloat(y);
 }
