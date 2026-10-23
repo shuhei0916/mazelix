@@ -46,6 +46,18 @@ Netflix の日本語字幕と英語字幕を、セリフ単位で混ぜて表示
 
 日本語
 
+### 画像
+
+`docs/store/` に用意してある（映像は抽象的な図形で、Netflix の映像や UI は使っていない。セリフは自作）。
+
+| ファイル | 用途 |
+|---|---|
+| `public/icon/128.png` | ストアのアイコン（128×128） |
+| `docs/store/screenshot-1-alternating.png` | スクリーンショット 1（1280×800）: セリフごとに日英が入れ替わる |
+| `docs/store/screenshot-2-one-line.png` | スクリーンショット 2（1280×800）: 2 言語の同時表示との比較 |
+| `docs/store/screenshot-3-ratio.png` | スクリーンショット 3（1280×800）: 英語の割合の設定 |
+| `docs/store/promo-small-440x280.png` | プロモーション タイル（小、440×280） |
+
 ## プライバシーへの取り組み
 
 ### 単一用途の説明

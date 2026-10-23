@@ -104,5 +104,5 @@ Netflix の日本語字幕と英語字幕を両方取得し、表示する言語
 - [x] アイコンを作る（`public/icon/`）
 - [x] content script の対象を `https://www.netflix.com/*` に絞る
 - [x] ストアの掲載情報の下書きを作る（`docs/chrome-web-store.md`）
-- [ ] ストア用のスクリーンショットを用意する（1280×800 か 640×400。Netflix の映像が映らないものにする）
+- [x] ストア用のスクリーンショットを用意する（`docs/store/`。Netflix の映像は使わず、抽象的な図形と自作のセリフで描いた）
 - [ ] Chrome ウェブストアに提出する（ユーザー作業）
