@@ -2,11 +2,6 @@ import { describe, expect, it } from "vitest";
 import type { Cue } from "./cue";
 import { prepareMaze, remaze, subtitleTextAt } from "./maze";
 
-function sequence(...values: number[]): () => number {
-  let i = 0;
-  return () => values[i++] ?? 0;
-}
-
 describe("字幕を maze する（シナリオ）", () => {
   // 日英で字幕の区切り方もタイミングも異なる、実際の字幕に近い例
   const en1: Cue = { startMs: 1000, endMs: 2000, text: "I don't think we should" };
@@ -17,7 +12,8 @@ describe("字幕を maze する（シナリオ）", () => {
 
   const maze = prepareMaze(
     { ja: [ja1, ja2], en: [en1, en2, en3] },
-    { englishRatio: 0.5, random: sequence(0.1, 0.9) },
+    // 英語の割合 50% で、1 つ目のブロックが英語になるように起点をずらす
+    { englishRatio: 0.5, random: () => 0.5 },
   );
   const textAt = (timeMs: number) => subtitleTextAt(maze, timeMs);
 
