@@ -1,8 +1,8 @@
+import type { TimeRange } from "./time-range";
+
 export type Lang = "ja" | "en";
 
-export type Segment = {
-  startMs: number;
-  endMs: number;
+export type Segment = TimeRange & {
   lang: Lang;
 };
 
