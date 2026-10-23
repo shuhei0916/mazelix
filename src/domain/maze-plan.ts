@@ -23,7 +23,7 @@ export function createMazePlan({
   for (let startMs = 0; startMs < durationMs; startMs += segmentMs) {
     plan.push({
       startMs,
-      endMs: startMs + segmentMs,
+      endMs: Math.min(startMs + segmentMs, durationMs),
       lang: random() < englishRatio ? "en" : "ja",
     });
   }
