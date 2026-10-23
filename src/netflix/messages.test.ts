@@ -3,7 +3,7 @@ import { isTextTracksMessage, textTracksMessage } from "./messages";
 
 describe("isTextTracksMessage", () => {
   it("textTracksMessage で作ったメッセージなら true を返す", () => {
-    expect(isTextTracksMessage(textTracksMessage([{ language: "ja" }]))).toBe(true);
+    expect(isTextTracksMessage(textTracksMessage([{ language: "ja" }], 70151933))).toBe(true);
   });
 
   it.each([

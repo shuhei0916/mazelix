@@ -2,10 +2,14 @@ export type TextTracksMessage = {
   source: "mazelix";
   type: "text-tracks";
   textTracks: unknown[];
+  movieId: number | undefined;
 };
 
-export function textTracksMessage(textTracks: unknown[]): TextTracksMessage {
-  return { source: "mazelix", type: "text-tracks", textTracks };
+export function textTracksMessage(
+  textTracks: unknown[],
+  movieId: number | undefined,
+): TextTracksMessage {
+  return { source: "mazelix", type: "text-tracks", textTracks, movieId };
 }
 
 // ページ側（MAIN world）から拡張側へ window.postMessage で送るので、Netflix 自身のメッセージと区別する
