@@ -17,9 +17,9 @@ export function createMazePlan({
   englishRatio,
   random,
 }: MazePlanOptions): Segment[] {
-  return blocks.map(({ startMs, endMs }) => ({
-    startMs,
-    endMs,
-    lang: random() < englishRatio ? "en" : "ja",
-  }));
+  return blocks.map(({ startMs, endMs, cues }) => {
+    const chosen: Lang = random() < englishRatio ? "en" : "ja";
+    const other: Lang = chosen === "en" ? "ja" : "en";
+    return { startMs, endMs, lang: cues[chosen].length > 0 ? chosen : other };
+  });
 }

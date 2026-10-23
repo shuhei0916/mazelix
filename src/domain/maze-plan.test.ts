@@ -45,4 +45,18 @@ describe("createMazePlan", () => {
 
     expect(plan.map((segment) => segment.lang)).toEqual(["en", "ja", "en"]);
   });
+
+  it("選んだ言語の字幕がないブロックは、もう一方の言語で表示する", () => {
+    const hey: Cue = { startMs: 1000, endMs: 1500, text: "Hey!" };
+    const sign: Cue = { startMs: 2000, endMs: 3000, text: "立入禁止" };
+    const englishOnly: Block = { startMs: 1000, endMs: 1500, cues: { ja: [], en: [hey] } };
+    const japaneseOnly: Block = { startMs: 2000, endMs: 3000, cues: { ja: [sign], en: [] } };
+
+    expect(
+      createMazePlan({ blocks: [englishOnly], englishRatio: 0, random: Math.random }),
+    ).toEqual([{ startMs: 1000, endMs: 1500, lang: "en" }]);
+    expect(
+      createMazePlan({ blocks: [japaneseOnly], englishRatio: 1, random: Math.random }),
+    ).toEqual([{ startMs: 2000, endMs: 3000, lang: "ja" }]);
+  });
 });
