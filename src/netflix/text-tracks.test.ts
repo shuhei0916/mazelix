@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type TextTrack, selectTextTracks } from "./text-tracks";
+import { type TextTrack, selectTextTracks, subtitleUrls } from "./text-tracks";
 
 function track(overrides: Partial<TextTrack>): TextTrack {
   return {
@@ -7,6 +7,7 @@ function track(overrides: Partial<TextTrack>): TextTrack {
     trackType: "PRIMARY",
     isForcedNarrative: false,
     isNoneTrack: false,
+    downloadables: {},
     ...overrides,
   };
 }
@@ -45,5 +46,38 @@ describe("selectTextTracks", () => {
       ja: undefined,
       en: undefined,
     });
+  });
+});
+
+describe("subtitleUrls", () => {
+  it("IMSC 1.1 形式の字幕の URL を、配信元の順にすべて返す", () => {
+    const ja = track({
+      downloadables: {
+        "nflx-cmisc": { isImage: true, urls: [{ url: "https://example.com/image" }] },
+        "imsc1.1": {
+          isImage: false,
+          urls: [{ url: "https://cdn1.example.com/ja" }, { url: "https://cdn2.example.com/ja" }],
+        },
+      },
+    });
+
+    expect(subtitleUrls(ja)).toEqual([
+      "https://cdn1.example.com/ja",
+      "https://cdn2.example.com/ja",
+    ]);
+  });
+
+  it("IMSC 1.1 形式がなければ空配列を返す", () => {
+    const imageOnly = track({
+      downloadables: {
+        "nflx-cmisc": { isImage: true, urls: [{ url: "https://example.com/image" }] },
+      },
+    });
+
+    expect(subtitleUrls(imageOnly)).toEqual([]);
+  });
+
+  it("downloadables がまだ読み込まれていないトラックは空配列を返す", () => {
+    expect(subtitleUrls(track({ downloadables: undefined }))).toEqual([]);
   });
 });

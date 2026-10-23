@@ -6,6 +6,12 @@ export type TextTrack = {
   trackType: string;
   isForcedNarrative: boolean;
   isNoneTrack: boolean;
+  downloadables?: Record<string, Downloadable>;
+};
+
+type Downloadable = {
+  isImage: boolean;
+  urls: { url: string }[];
 };
 
 export function selectTextTracks(
@@ -20,4 +26,9 @@ function selectTrack(tracks: TextTrack[], language: Lang): TextTrack | undefined
     (track) => track.language === language && !track.isForcedNarrative,
   );
   return candidates.find((track) => track.trackType === "PRIMARY") ?? candidates[0];
+}
+
+// parseTtml が読める IMSC 1.1 形式の URL を返す（同じファイルが配信元ごとに複数ある）
+export function subtitleUrls(track: TextTrack): string[] {
+  return track.downloadables?.["imsc1.1"]?.urls.map(({ url }) => url) ?? [];
 }
