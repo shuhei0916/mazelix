@@ -71,4 +71,17 @@ describe("parseTtml", () => {
 
     expect(parseTtml(xml)[0]?.text).toBe("一緒に\n来て");
   });
+
+  it("ルビ（tts:ruby=\"text\" のスタイルの span）を取り除く", () => {
+    const xml = ttml(
+      `<p begin="0t" end="10000000t" style="style0"><span style="style4"><span style="style5">明日</span><span style="style6">あした</span></span>また会おう</p>`,
+      {
+        styles: `<style xml:id="style4" tts:ruby="container"/>
+<style xml:id="style5" tts:ruby="base"/>
+<style xml:id="style6" tts:ruby="text" tts:rubyPosition="outside"/>`,
+      },
+    );
+
+    expect(parseTtml(xml)[0]?.text).toBe("明日また会おう");
+  });
 });
