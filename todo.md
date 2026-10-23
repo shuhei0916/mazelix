@@ -100,6 +100,7 @@ Netflix の日本語字幕と英語字幕を両方取得し、表示する言語
 - [x] 英語の比率を設定できるようにする（ポップアップ。chrome.storage に保存し、再生中の字幕にもすぐ反映する）
 
 ## 公開
+- [x] ポップアップに ON/OFF を付ける（OFF の間は Netflix 標準の字幕に戻す）
 - [x] アイコンを作る（`public/icon/`）
 - [x] content script の対象を `https://www.netflix.com/*` に絞る
 - [x] ストアの掲載情報の下書きを作る（`docs/chrome-web-store.md`）
