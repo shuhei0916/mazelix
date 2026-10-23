@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Cue } from "./cue";
-import { prepareMaze, subtitleTextAt } from "./maze";
+import { prepareMaze, remaze, subtitleTextAt } from "./maze";
 
 function sequence(...values: number[]): () => number {
   let i = 0;
@@ -100,5 +100,20 @@ describe("subtitleTextAt", () => {
     );
 
     expect(subtitleTextAt(maze, 500)).toBe("Where are you\ngoing?");
+  });
+});
+
+describe("remaze", () => {
+  it("取得済みの字幕はそのままに、新しい英語の割合で計画を作り直す", () => {
+    const tracks = {
+      ja: [{ startMs: 0, endMs: 1000, text: "走れ！" }],
+      en: [{ startMs: 0, endMs: 1000, text: "Run!" }],
+    };
+    const japaneseOnly = prepareMaze(tracks, { englishRatio: 0, random: Math.random });
+
+    const englishOnly = remaze(japaneseOnly, { englishRatio: 1, random: Math.random });
+
+    expect(subtitleTextAt(japaneseOnly, 500)).toBe("走れ！");
+    expect(subtitleTextAt(englishOnly, 500)).toBe("Run!");
   });
 });

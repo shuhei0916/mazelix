@@ -20,10 +20,7 @@ export function prepareMaze(tracks: Record<Lang, Cue[]>, options: MazeOptions): 
   const ja = tracks.ja.toSorted(byReadingOrder);
   const en = tracks.en.toSorted(byReadingOrder);
   const cleaned = { ja, en: normalizeAllCaps(removeSoundDescriptions(en)) };
-  return {
-    tracks: cleaned,
-    plan: createMazePlan({ blocks: groupIntoBlocks(cleaned), ...options }),
-  };
+  return remaze({ tracks: cleaned, plan: [] }, options);
 }
 
 export function subtitleTextAt(maze: Maze, timeMs: number): string {
@@ -31,4 +28,12 @@ export function subtitleTextAt(maze: Maze, timeMs: number): string {
     .toSorted(byVerticalPosition)
     .map((cue) => cue.text)
     .join("\n");
+}
+
+// 取得済みの字幕はそのままに、表示する言語の計画だけを作り直す（英語の割合を変えたときなど）
+export function remaze(maze: Maze, options: MazeOptions): Maze {
+  return {
+    tracks: maze.tracks,
+    plan: createMazePlan({ blocks: groupIntoBlocks(maze.tracks), ...options }),
+  };
 }
