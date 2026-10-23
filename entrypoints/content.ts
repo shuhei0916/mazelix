@@ -3,12 +3,7 @@ import { loadMaze } from "../src/netflix/load-maze";
 import { isForCurrentVideo } from "../src/netflix/manifest";
 import { isTextTracksMessage } from "../src/netflix/messages";
 import { createOverlay, updateOverlay } from "../src/netflix/overlay";
-import {
-  getEnabled,
-  getEnglishRatio,
-  watchEnabled,
-  watchEnglishRatio,
-} from "../src/settings";
+import { getEnglishRatio, watchEnglishRatio } from "../src/settings";
 
 const HIDE_NETFLIX_SUBTITLES = ".player-timedtext, .image-based-timed-text { display: none !important; }";
 
@@ -20,26 +15,16 @@ export default defineContentScript({
   runAt: "document_start",
   main(ctx) {
     let maze: Maze | undefined;
-    let enabled = true;
     let latestLoad = 0;
     const overlay = createOverlay(document);
     const hideNetflixSubtitles = document.createElement("style");
     hideNetflixSubtitles.textContent = HIDE_NETFLIX_SUBTITLES;
 
     // ポップアップで英語の割合が変わったら、再生中の字幕の計画を作り直す
-    const unwatchRatio = watchEnglishRatio((englishRatio) => {
+    const unwatch = watchEnglishRatio((englishRatio) => {
       if (maze) maze = remaze(maze, { englishRatio, random: Math.random });
     });
-    ctx.onInvalidated(unwatchRatio);
-
-    // OFF の間は Netflix 標準の字幕に戻す。取得済みの字幕は残すので、ON に戻せばすぐ再開する
-    void getEnabled().then((value) => {
-      enabled = value;
-    });
-    const unwatchEnabled = watchEnabled((value) => {
-      enabled = value;
-    });
-    ctx.onInvalidated(unwatchEnabled);
+    ctx.onInvalidated(unwatch);
 
     ctx.addEventListener(window, "message", async (event: MessageEvent) => {
       if (event.source !== window || !isTextTracksMessage(event.data)) return;
@@ -74,7 +59,7 @@ export default defineContentScript({
     const render = () => {
       const video = location.pathname.startsWith("/watch") ? document.querySelector("video") : null;
       const container = video?.parentElement;
-      if (enabled && maze && video && container) {
+      if (maze && video && container) {
         if (overlay.parentElement !== container) container.append(overlay);
         if (!hideNetflixSubtitles.isConnected) document.head.append(hideNetflixSubtitles);
         overlay.style.fontSize = `${Math.max(16, video.clientHeight * 0.045)}px`;
