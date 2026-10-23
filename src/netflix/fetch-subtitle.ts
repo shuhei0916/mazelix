@@ -1,4 +1,4 @@
-type Fetcher = (url: string) => Promise<{ ok: boolean; text(): Promise<string> }>;
+export type Fetcher = (url: string) => Promise<{ ok: boolean; text(): Promise<string> }>;
 
 // 同じ字幕ファイルが配信元ごとに複数の URL で提供されるので、取得できるまで順に試す
 export async function fetchFirstAvailable(urls: string[], fetcher: Fetcher): Promise<string> {
