@@ -97,4 +97,11 @@ Netflix の日本語字幕と英語字幕を両方取得し、表示する言語
 - [x] ~~netflix.com/watch でだけ content script を動かす~~ → Netflix は SPA なので netflix.com 全体で動かす
 - [x] Chrome に読み込み、Netflix で動作確認用のバッジが出ることを確認する（ユーザー確認）
 - [x] 再生ページ（/watch/*）に移ったことを検知する → 毎フレーム `location.pathname` を見る
-- [ ] 英語の比率を設定できるようにする（ポップアップ）
+- [x] 英語の比率を設定できるようにする（ポップアップ。chrome.storage に保存し、再生中の字幕にもすぐ反映する）
+
+## 公開
+- [x] アイコンを作る（`public/icon/`）
+- [x] content script の対象を `https://www.netflix.com/*` に絞る
+- [x] ストアの掲載情報の下書きを作る（`docs/chrome-web-store.md`）
+- [ ] ストア用のスクリーンショットを用意する（1280×800 か 640×400。Netflix の映像が映らないものにする）
+- [ ] Chrome ウェブストアに提出する（ユーザー作業）

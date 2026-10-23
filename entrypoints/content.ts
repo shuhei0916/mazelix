@@ -1,19 +1,17 @@
-import { type Maze, subtitleTextAt } from "../src/domain/maze";
+import { type Maze, remaze, subtitleTextAt } from "../src/domain/maze";
 import { loadMaze } from "../src/netflix/load-maze";
 import { isForCurrentVideo } from "../src/netflix/manifest";
 import { isTextTracksMessage } from "../src/netflix/messages";
 import { createOverlay, updateOverlay } from "../src/netflix/overlay";
-
-// 設定画面（ポップアップ）ができるまでは固定
-const ENGLISH_RATIO = 0.5;
+import { getEnglishRatio, watchEnglishRatio } from "../src/settings";
 
 const HIDE_NETFLIX_SUBTITLES = ".player-timedtext, .image-based-timed-text { display: none !important; }";
 
 // Netflix はページを再読み込みせずに画面を切り替える（SPA）ため、
-// /watch/* だけでなく netflix.com 全体で content script を動かす。
+// /watch/* だけでなく www.netflix.com 全体で content script を動かす。
 // ページ側がマニフェストを渡す前に待ち受けを始めるよう、document_start で動かす
 export default defineContentScript({
-  matches: ["*://*.netflix.com/*"],
+  matches: ["https://www.netflix.com/*"],
   runAt: "document_start",
   main(ctx) {
     let maze: Maze | undefined;
@@ -21,6 +19,12 @@ export default defineContentScript({
     const overlay = createOverlay(document);
     const hideNetflixSubtitles = document.createElement("style");
     hideNetflixSubtitles.textContent = HIDE_NETFLIX_SUBTITLES;
+
+    // ポップアップで英語の割合が変わったら、再生中の字幕の計画を作り直す
+    const unwatch = watchEnglishRatio((englishRatio) => {
+      if (maze) maze = remaze(maze, { englishRatio, random: Math.random });
+    });
+    ctx.onInvalidated(unwatch);
 
     ctx.addEventListener(window, "message", async (event: MessageEvent) => {
       if (event.source !== window || !isTextTracksMessage(event.data)) return;
@@ -37,7 +41,7 @@ export default defineContentScript({
       maze = undefined;
       try {
         const loaded = await loadMaze(textTracks, (url) => fetch(url), {
-          englishRatio: ENGLISH_RATIO,
+          englishRatio: await getEnglishRatio(),
           random: Math.random,
         });
         if (load !== latestLoad) return;

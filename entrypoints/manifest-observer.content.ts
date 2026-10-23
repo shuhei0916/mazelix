@@ -4,7 +4,7 @@ import { textTracksMessage } from "../src/netflix/messages";
 // ページ側（MAIN world）で動き、Netflix がマニフェストを JSON.parse したときに
 // 字幕トラックの一覧を拡張側の content script へ渡す。リクエストは書き換えない。
 export default defineContentScript({
-  matches: ["*://*.netflix.com/*"],
+  matches: ["https://www.netflix.com/*"],
   world: "MAIN",
   runAt: "document_start",
   main() {

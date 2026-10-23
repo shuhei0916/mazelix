@@ -9,7 +9,7 @@ Mazelingo の「文章の一部だけを英語にする」アイデアと、Lang
 
 1. Netflix が読み込む動画情報（マニフェスト）から、日本語と英語の字幕トラックを見つける
 2. 日英の字幕ファイル（IMSC 1.1 / TTML）を取得して、字幕の配列に変換する
-3. 日英どちらかの字幕が途切れずに続く範囲を「ブロック」にまとめ、ブロックごとに表示する言語を決める（英語の割合は今のところ 50% 固定）
+3. 日英どちらかの字幕が途切れずに続く範囲を「ブロック」にまとめ、ブロックごとに表示する言語を決める（英語の割合はツールバーのアイコンから設定できる。初期値は 50%）
 4. 動画の再生位置に合わせて、選ばれた言語の字幕を動画の上に重ねて表示し、Netflix 標準の字幕は隠す
 
 言語が切り替わるのはセリフの間だけなので、字幕が途中で切れたり、2 つの言語が同時に出たりしません。
@@ -24,6 +24,7 @@ npm test            # テスト（Vitest）
 npm run test:watch  # 保存するたびにテストを実行
 npm run typecheck   # 型チェック
 npm run build       # .output/chrome-mv3 に拡張機能をビルド
+npm run zip         # Chrome ウェブストアに提出する zip を作る
 ```
 
 開発は t-wada さんの推奨する TDD（TODO リスト → Red → Green → Refactor）で進めています。TODO リストは [todo.md](todo.md) です。
@@ -41,4 +42,8 @@ npm run build       # .output/chrome-mv3 に拡張機能をビルド
 |---|---|
 | `src/domain/` | 字幕を maze するロジック（Netflix にも Chrome にも依存しない純粋な関数） |
 | `src/netflix/` | Netflix の字幕形式やマニフェストの扱い、字幕の表示 |
-| `entrypoints/` | Chrome に読み込まれる content script（WXT のエントリーポイント） |
+| `src/popup/` | 英語の割合を設定するポップアップの部品 |
+| `src/settings.ts` | 設定（英語の割合）の保存と監視 |
+| `entrypoints/` | Chrome に読み込まれる content script とポップアップ（WXT のエントリーポイント） |
+| `public/icon/` | 拡張機能のアイコン |
+| `docs/chrome-web-store.md` | Chrome ウェブストアの掲載情報の下書き |
