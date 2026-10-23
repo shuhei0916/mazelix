@@ -24,7 +24,14 @@ export default defineContentScript({
     const unwatch = watchEnglishRatio((englishRatio) => {
       if (maze) maze = remaze(maze, { englishRatio, random: Math.random });
     });
-    ctx.onInvalidated(unwatch);
+    ctx.onInvalidated(() => {
+      try {
+        unwatch();
+      } catch {
+        // 拡張機能の更新・再読み込みで無効になった古い content script からは
+        // chrome.storage に触れられない。監視も一緒に無効になっているので無視してよい
+      }
+    });
 
     ctx.addEventListener(window, "message", async (event: MessageEvent) => {
       if (event.source !== window || !isTextTracksMessage(event.data)) return;
