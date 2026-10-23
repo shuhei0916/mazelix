@@ -1,31 +1,25 @@
+import type { Block } from "./blocks";
+import type { Lang } from "./lang";
 import type { TimeRange } from "./time-range";
-
-export type Lang = "ja" | "en";
 
 export type Segment = TimeRange & {
   lang: Lang;
 };
 
 export type MazePlanOptions = {
-  durationMs: number;
-  segmentMs: number;
+  blocks: Block[];
   englishRatio: number;
   random: () => number;
 };
 
 export function createMazePlan({
-  durationMs,
-  segmentMs,
+  blocks,
   englishRatio,
   random,
 }: MazePlanOptions): Segment[] {
-  const plan: Segment[] = [];
-  for (let startMs = 0; startMs < durationMs; startMs += segmentMs) {
-    plan.push({
-      startMs,
-      endMs: Math.min(startMs + segmentMs, durationMs),
-      lang: random() < englishRatio ? "en" : "ja",
-    });
-  }
-  return plan;
+  return blocks.map(({ startMs, endMs }) => ({
+    startMs,
+    endMs,
+    lang: random() < englishRatio ? "en" : "ja",
+  }));
 }

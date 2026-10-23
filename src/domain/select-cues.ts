@@ -1,5 +1,6 @@
 import { type Cue, findActiveCues } from "./cue";
-import type { Lang, Segment } from "./maze-plan";
+import type { Lang } from "./lang";
+import type { Segment } from "./maze-plan";
 import { contains } from "./time-range";
 
 export function selectCues(

@@ -1,5 +1,5 @@
 import type { Cue } from "./cue";
-import type { Lang } from "./maze-plan";
+import type { Lang } from "./lang";
 import type { TimeRange } from "./time-range";
 
 export type Block = TimeRange & {
