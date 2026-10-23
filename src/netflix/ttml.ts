@@ -15,6 +15,12 @@ export function parseTtml(xml: string): Cue[] {
   return Array.from(doc.getElementsByTagName("p"), (p) => ({
     startMs: parseTickTime(p.getAttribute("begin") ?? "", tickRate),
     endMs: parseTickTime(p.getAttribute("end") ?? "", tickRate),
-    text: p.textContent ?? "",
+    text: textOf(p),
   }));
+}
+
+function textOf(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) return node.nodeValue ?? "";
+  if (node.nodeName === "br") return "\n";
+  return Array.from(node.childNodes, textOf).join("");
 }

@@ -65,4 +65,10 @@ describe("parseTtml", () => {
 
     expect(parseTtml(xml)[0]?.text).toBe('"止まれ"');
   });
+
+  it("<br/> を改行に変換する", () => {
+    const xml = ttml(`<p begin="0t" end="10000000t" style="style0">一緒に<br/>来て</p>`);
+
+    expect(parseTtml(xml)[0]?.text).toBe("一緒に\n来て");
+  });
 });
