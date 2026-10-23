@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { groupIntoBlocks } from "./blocks";
 import type { Cue } from "./cue";
-import { createMazePlan } from "./maze-plan";
-import { selectCues } from "./select-cues";
+import { prepareMaze, subtitleTextAt } from "./maze";
+
+function sequence(...values: number[]): () => number {
+  let i = 0;
+  return () => values[i++] ?? 0;
+}
 
 describe("字幕を maze する（シナリオ）", () => {
   // 日英で字幕の区切り方もタイミングも異なる、実際の字幕に近い例
@@ -11,34 +14,61 @@ describe("字幕を maze する（シナリオ）", () => {
   const en3: Cue = { startMs: 4000, endMs: 5000, text: "Why not?" };
   const ja1: Cue = { startMs: 1100, endMs: 3000, text: "入らない方がいい" };
   const ja2: Cue = { startMs: 4100, endMs: 5200, text: "どうして？" };
-  const tracks = { ja: [ja1, ja2], en: [en1, en2, en3] };
 
-  const plan = createMazePlan({
-    blocks: groupIntoBlocks(tracks),
-    englishRatio: 0.5,
-    random: (() => {
-      const values = [0.1, 0.9];
-      let i = 0;
-      return () => values[i++] ?? 0;
-    })(),
-  });
-
-  const textAt = (timeMs: number) =>
-    selectCues(plan, tracks, timeMs).map((cue) => cue.text);
+  const maze = prepareMaze(
+    { ja: [ja1, ja2], en: [en1, en2, en3] },
+    { englishRatio: 0.5, random: sequence(0.1, 0.9) },
+  );
+  const textAt = (timeMs: number) => subtitleTextAt(maze, timeMs);
 
   it("1 つ目のセリフは、英語の字幕だけを最後まで表示する", () => {
-    expect(textAt(1050)).toEqual(["I don't think we should"]);
-    expect(textAt(2500)).toEqual(["go in there."]);
-    expect(textAt(3100)).toEqual(["go in there."]);
+    expect(textAt(1050)).toBe("I don't think we should");
+    expect(textAt(2500)).toBe("go in there.");
+    expect(textAt(3100)).toBe("go in there.");
   });
 
   it("2 つ目のセリフは、日本語の字幕だけを最後まで表示する", () => {
-    expect(textAt(4050)).toEqual([]);
-    expect(textAt(4500)).toEqual(["どうして？"]);
-    expect(textAt(5100)).toEqual(["どうして？"]);
+    expect(textAt(4050)).toBe("");
+    expect(textAt(4500)).toBe("どうして？");
+    expect(textAt(5100)).toBe("どうして？");
   });
 
   it("セリフの間では、何も表示しない", () => {
-    expect(textAt(3500)).toEqual([]);
+    expect(textAt(3500)).toBe("");
+  });
+});
+
+describe("prepareMaze", () => {
+  it("英語 CC の効果音の説明を取り除き、大文字だけの英文を整える", () => {
+    const maze = prepareMaze(
+      {
+        ja: [],
+        en: [
+          { startMs: 0, endMs: 1000, text: "[grunts]" },
+          { startMs: 2000, endMs: 3000, text: "PARKOUR!" },
+        ],
+      },
+      { englishRatio: 1, random: Math.random },
+    );
+
+    expect(subtitleTextAt(maze, 500)).toBe("");
+    expect(subtitleTextAt(maze, 2500)).toBe("Parkour!");
+  });
+});
+
+describe("subtitleTextAt", () => {
+  it("同時に表示中の字幕が複数あれば、改行でつなぐ", () => {
+    const maze = prepareMaze(
+      {
+        ja: [],
+        en: [
+          { startMs: 0, endMs: 1000, text: "Where are you" },
+          { startMs: 0, endMs: 1000, text: "going?" },
+        ],
+      },
+      { englishRatio: 1, random: Math.random },
+    );
+
+    expect(subtitleTextAt(maze, 500)).toBe("Where are you\ngoing?");
   });
 });
