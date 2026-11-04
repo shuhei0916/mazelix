@@ -12,6 +12,9 @@ export default defineContentScript({
       fetcher: (url) => fetch(url),
       random: Math.random,
       onMessage: (listener) => ctx.addEventListener(window, "message", listener),
+      // Netflix のプレイヤーがキーを先に受け取って止めてしまわないよう、キャプチャで受け取る
+      onKeyDown: (listener) =>
+        ctx.addEventListener(window, "keydown", listener, { capture: true }),
       onAnimationFrame: (callback) => ctx.requestAnimationFrame(callback),
     });
     ctx.onInvalidated(() => {

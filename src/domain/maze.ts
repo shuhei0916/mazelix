@@ -4,6 +4,7 @@ import { byReadingOrder, byVerticalPosition, type Cue } from "./cue";
 import type { Lang } from "./lang";
 import { createMazePlan, type Segment } from "./maze-plan";
 import { selectCues } from "./select-cues";
+import { contains } from "./time-range";
 
 export type Maze = {
   tracks: Record<Lang, Cue[]>;
@@ -36,4 +37,18 @@ export function remaze(maze: Maze, options: MazeOptions): Maze {
     tracks: maze.tracks,
     plan: createMazePlan({ blocks: groupIntoBlocks(maze.tracks), ...options }),
   };
+}
+
+// 指定した時刻を含むブロックの日英を入れ替える（分からない英文の意味を確かめるときなど）。
+// もう一方の言語の字幕がないブロックは、入れ替えると何も出なくなるのでそのままにする
+export function toggleLangAt(maze: Maze, timeMs: number): Maze {
+  const index = maze.plan.findIndex((segment) => contains(segment, timeMs));
+  const segment = maze.plan[index];
+  if (!segment) return maze;
+  const other: Lang = segment.lang === "en" ? "ja" : "en";
+  const hasOther = maze.tracks[other].some(
+    (cue) => cue.startMs < segment.endMs && segment.startMs < cue.endMs,
+  );
+  if (!hasOther) return maze;
+  return { tracks: maze.tracks, plan: maze.plan.with(index, { ...segment, lang: other }) };
 }

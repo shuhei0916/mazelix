@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Cue } from "./cue";
-import { prepareMaze, remaze, subtitleTextAt } from "./maze";
+import { prepareMaze, remaze, subtitleTextAt, toggleLangAt } from "./maze";
 
 describe("字幕を maze する（シナリオ）", () => {
   // 日英で字幕の区切り方もタイミングも異なる、実際の字幕に近い例
@@ -111,5 +111,38 @@ describe("remaze", () => {
 
     expect(subtitleTextAt(japaneseOnly, 500)).toBe("走れ！");
     expect(subtitleTextAt(englishOnly, 500)).toBe("Run!");
+  });
+});
+
+describe("toggleLangAt", () => {
+  const ja: Cue = { startMs: 1100, endMs: 3000, text: "入らない方がいい" };
+  const en: Cue = { startMs: 1000, endMs: 3200, text: "I don't think we should go in there." };
+  const jaOnly: Cue = { startMs: 4000, endMs: 5000, text: "（ため息）" };
+  const maze = prepareMaze({ ja: [ja, jaOnly], en: [en] }, { englishRatio: 0, random: () => 0 });
+
+  it("指定した時刻を含むブロックの言語を入れ替える", () => {
+    const toggled = toggleLangAt(maze, 2000);
+
+    expect(subtitleTextAt(toggled, 2000)).toBe("I don't think we should go in there.");
+    expect(subtitleTextAt(toggleLangAt(toggled, 2000), 2000)).toBe("入らない方がいい");
+  });
+
+  it("ブロックの最初から最後まで、入れ替えた言語で表示する", () => {
+    const toggled = toggleLangAt(maze, 2000);
+
+    expect(subtitleTextAt(toggled, 1050)).toBe("I don't think we should go in there.");
+    expect(subtitleTextAt(toggled, 3100)).toBe("I don't think we should go in there.");
+  });
+
+  it("ほかのブロックの言語は変えない", () => {
+    expect(toggleLangAt(maze, 2000).plan[1]).toEqual(maze.plan[1]);
+  });
+
+  it("もう一方の言語の字幕がないブロックは、そのままにする", () => {
+    expect(subtitleTextAt(toggleLangAt(maze, 4500), 4500)).toBe("（ため息）");
+  });
+
+  it("ブロックの間の時刻なら、何も変えない", () => {
+    expect(toggleLangAt(maze, 3500)).toEqual(maze);
   });
 });

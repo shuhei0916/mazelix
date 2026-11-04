@@ -45,6 +45,7 @@ function netflixPage() {
     fetcher,
     random: () => 0,
     onMessage: (listener) => window.addEventListener("message", listener),
+    onKeyDown: (listener) => window.addEventListener("keydown", listener, { capture: true }),
     onAnimationFrame: (callback) => {
       nextFrame = callback;
     },
@@ -58,6 +59,9 @@ function netflixPage() {
     receiveManifest(movieId: number) {
       const data = textTracksMessage(textTracks(movieId), movieId);
       window.dispatchEvent(new MessageEvent("message", { data, source: window }));
+    },
+    pressKey(key: string, init: KeyboardEventInit = {}, target: EventTarget = document.body) {
+      target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, ...init }));
     },
     // 字幕の読み込みは非同期なので、表示が期待どおりになるまでフレームを進める
     async expectSubtitle(text: string) {
@@ -127,5 +131,57 @@ describe("Netflix の再生ページで字幕を maze する", () => {
     page.open("/browse");
 
     await page.expectSubtitle("");
+  });
+});
+
+describe("w キーで、表示中のセリフの日英を入れ替える", () => {
+  let page: ReturnType<typeof netflixPage>;
+
+  beforeEach(async () => {
+    fakeBrowser.reset();
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    await setEnglishRatio(0);
+    page = netflixPage();
+    page.open("/watch/1");
+    page.receiveManifest(1);
+    await page.expectSubtitle("走れ！");
+  });
+
+  afterEach(() => {
+    page.unwatch();
+    document.body.replaceChildren();
+    document.head.replaceChildren();
+    vi.restoreAllMocks();
+  });
+
+  it("w キーを押すと英語になり、もう一度押すと日本語に戻る", async () => {
+    page.pressKey("w");
+    await page.expectSubtitle("Run!");
+
+    page.pressKey("w");
+    await page.expectSubtitle("走れ！");
+  });
+
+  it("Ctrl などと一緒に押したときは入れ替えない（Ctrl+W でタブを閉じるときなど）", async () => {
+    page.pressKey("w", { ctrlKey: true });
+    page.pressKey("w", { altKey: true });
+    page.pressKey("w", { metaKey: true });
+
+    await page.expectSubtitle("走れ！");
+  });
+
+  it("入力欄に文字を打っているときは入れ替えない", async () => {
+    const input = document.createElement("input");
+    document.body.append(input);
+
+    page.pressKey("w", {}, input);
+
+    await page.expectSubtitle("走れ！");
+  });
+
+  it("日本語入力の変換中は入れ替えない", async () => {
+    page.pressKey("w", { isComposing: true });
+
+    await page.expectSubtitle("走れ！");
   });
 });

@@ -1,4 +1,4 @@
-import { type Maze, remaze, subtitleTextAt } from "../domain/maze";
+import { type Maze, remaze, subtitleTextAt, toggleLangAt } from "../domain/maze";
 import { getEnglishRatio, watchEnglishRatio } from "../settings";
 import type { Fetcher } from "./fetch-subtitle";
 import { loadMaze } from "./load-maze";
@@ -14,12 +14,28 @@ export type MazelixEnv = {
   fetcher: Fetcher;
   random: () => number;
   onMessage: (listener: (event: MessageEvent) => void) => void;
+  onKeyDown: (listener: (event: KeyboardEvent) => void) => void;
   onAnimationFrame: (callback: () => void) => void;
 };
 
+// Ctrl+W（タブを閉じる）などの組み合わせや、文字の入力中は奪わない
+function isToggleLangKey(event: KeyboardEvent): boolean {
+  if (event.key.toLowerCase() !== "w") return false;
+  if (event.ctrlKey || event.altKey || event.metaKey || event.isComposing) return false;
+  const target = event.target as HTMLElement | null;
+  return !target?.closest?.("input, textarea, select, [contenteditable]");
+}
+
 // マニフェストを受け取って字幕を maze し、動画の再生位置に合わせて描画する。
 // 英語の割合の監視をやめる関数を返す
-export function startMazelix({ window, fetcher, random, onMessage, onAnimationFrame }: MazelixEnv) {
+export function startMazelix({
+  window,
+  fetcher,
+  random,
+  onMessage,
+  onKeyDown,
+  onAnimationFrame,
+}: MazelixEnv) {
   const { document, location } = window;
   let maze: Maze | undefined;
   let latestLoad = 0;
@@ -87,9 +103,19 @@ export function startMazelix({ window, fetcher, random, onMessage, onAnimationFr
     }
   };
 
+  const watchedVideo = () =>
+    location.pathname.startsWith("/watch") ? document.querySelector("video") : null;
+
+  // 分からない英文の意味を確かめられるよう、再生位置のセリフの日英を入れ替える
+  onKeyDown((event) => {
+    const video = watchedVideo();
+    if (!maze || !video || !isToggleLangKey(event)) return;
+    maze = toggleLangAt(maze, video.currentTime * 1000);
+  });
+
   const render = () => {
     followWatchedMovie();
-    const video = location.pathname.startsWith("/watch") ? document.querySelector("video") : null;
+    const video = watchedVideo();
     const container = video?.parentElement;
     if (maze && video && container) {
       if (overlay.parentElement !== container) container.append(overlay);
