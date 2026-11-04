@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractMovieId, extractTextTracks, isForCurrentVideo } from "./manifest";
+import { extractMovieId, extractTextTracks, isForCurrentVideo, watchedMovieId } from "./manifest";
 
 describe("extractTextTracks", () => {
   it("マニフェストの result.textTracks を返す", () => {
@@ -43,5 +43,19 @@ describe("extractMovieId", () => {
   it("数値でなければ undefined を返す", () => {
     expect(extractMovieId({ result: {} })).toBeUndefined();
     expect(extractMovieId(null)).toBeUndefined();
+  });
+});
+
+describe("watchedMovieId", () => {
+  it("再生ページの URL から作品 ID を返す", () => {
+    expect(watchedMovieId("/watch/70151933")).toBe(70151933);
+  });
+
+  it.each([
+    ["作品一覧", "/browse"],
+    ["トップ", "/"],
+    ["ID が数字ではない", "/watch/abc"],
+  ])("%s なら undefined を返す", (_, pathname) => {
+    expect(watchedMovieId(pathname)).toBeUndefined();
   });
 });

@@ -13,5 +13,11 @@ export function extractMovieId(value: unknown): number | undefined {
 // 再生中に次のエピソードのマニフェストが先読みされることがあるので、URL の作品 ID と照らし合わせる
 export function isForCurrentVideo(movieId: number | undefined, pathname: string): boolean {
   if (movieId === undefined) return true;
-  return pathname === `/watch/${movieId}`;
+  return watchedMovieId(pathname) === movieId;
+}
+
+// 再生ページ（/watch/{作品 ID}）の URL から作品 ID を取り出す
+export function watchedMovieId(pathname: string): number | undefined {
+  const match = /^\/watch\/(\d+)$/.exec(pathname);
+  return match ? Number(match[1]) : undefined;
 }
