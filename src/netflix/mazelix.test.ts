@@ -39,20 +39,32 @@ function netflixPage() {
   Object.defineProperty(video, "currentTime", { value: 1.5, writable: true });
   player.append(video);
   document.body.append(player);
+  // テストごとにイベントの待ち受けを外し、前のテストの mazelix が反応しないようにする
+  const listening = new AbortController();
+  const { signal } = listening;
+  const seeks: number[] = [];
 
   const unwatch = startMazelix({
     window,
     fetcher,
     random: () => 0,
-    onMessage: (listener) => window.addEventListener("message", listener),
-    onKeyDown: (listener) => window.addEventListener("keydown", listener, { capture: true }),
+    onMessage: (listener) => window.addEventListener("message", listener, { signal }),
+    onKeyDown: (listener) => window.addEventListener("keydown", listener, { capture: true, signal }),
     onAnimationFrame: (callback) => {
       nextFrame = callback;
     },
+    seek: (timeMs) => seeks.push(timeMs),
   });
 
   return {
-    unwatch,
+    seeks,
+    close() {
+      unwatch();
+      listening.abort();
+    },
+    playAt(seconds: number) {
+      video.currentTime = seconds;
+    },
     open(pathname: string) {
       history.pushState(null, "", pathname);
     },
@@ -89,7 +101,7 @@ describe("Netflix の再生ページで字幕を maze する", () => {
   });
 
   afterEach(() => {
-    page.unwatch();
+    page.close();
     document.body.replaceChildren();
     document.head.replaceChildren();
     vi.restoreAllMocks();
@@ -148,7 +160,7 @@ describe("w キーで、表示中のセリフの日英を入れ替える", () =>
   });
 
   afterEach(() => {
-    page.unwatch();
+    page.close();
     document.body.replaceChildren();
     document.head.replaceChildren();
     vi.restoreAllMocks();
@@ -183,5 +195,61 @@ describe("w キーで、表示中のセリフの日英を入れ替える", () =>
     page.pressKey("w", { isComposing: true });
 
     await page.expectSubtitle("走れ！");
+  });
+});
+
+describe("a / d キーで、前・次のセリフの先頭に移る", () => {
+  let page: ReturnType<typeof netflixPage>;
+
+  beforeEach(async () => {
+    fakeBrowser.reset();
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    await setEnglishRatio(0);
+    page = netflixPage();
+    page.open("/watch/1");
+    page.receiveManifest(1);
+    await page.expectSubtitle("走れ！");
+  });
+
+  afterEach(() => {
+    page.close();
+    document.body.replaceChildren();
+    document.head.replaceChildren();
+    vi.restoreAllMocks();
+  });
+
+  it("d キーで、次のセリフの先頭にシークする", () => {
+    page.playAt(0.5);
+
+    page.pressKey("d");
+
+    expect(page.seeks).toEqual([1000]);
+  });
+
+  it("a キーで、聞き逃したセリフの先頭にシークする", () => {
+    page.playAt(2.5);
+
+    page.pressKey("a");
+
+    expect(page.seeks).toEqual([1000]);
+  });
+
+  it("移る先のセリフがなければ、シークしない", () => {
+    page.playAt(2.5);
+
+    page.pressKey("d");
+
+    expect(page.seeks).toEqual([]);
+  });
+
+  it("Ctrl などと一緒に押したときや、入力欄に文字を打っているときはシークしない", () => {
+    const input = document.createElement("input");
+    document.body.append(input);
+    page.playAt(0.5);
+
+    page.pressKey("d", { ctrlKey: true });
+    page.pressKey("d", {}, input);
+
+    expect(page.seeks).toEqual([]);
   });
 });

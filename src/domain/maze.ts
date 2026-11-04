@@ -52,3 +52,27 @@ export function toggleLangAt(maze: Maze, timeMs: number): Maze {
   if (!hasOther) return maze;
   return { tracks: maze.tracks, plan: maze.plan.with(index, { ...segment, lang: other }) };
 }
+
+// これより短い間に「前へ」を押したら、今のセリフではなく 1 つ前のセリフへ戻る
+const RESTART_GRACE_MS = 1000;
+
+// 「前へ」で移る時刻。今のセリフが始まってしばらくたっていれば、今のセリフの先頭に戻る
+export function previousSentenceStart(maze: Maze, timeMs: number): number | undefined {
+  return sentenceStarts(maze).findLast((startMs) => startMs <= timeMs - RESTART_GRACE_MS);
+}
+
+// 「次へ」で移る時刻
+export function nextSentenceStart(maze: Maze, timeMs: number): number | undefined {
+  return sentenceStarts(maze).find((startMs) => startMs > timeMs);
+}
+
+// 移る先は、表示中の言語の字幕 1 枚ずつの先頭。ブロックは会話が続くと 1 分近くになり、
+// ブロック単位では戻りすぎる。同じ時刻に始まる 2 行の字幕は 1 枚として扱う
+function sentenceStarts(maze: Maze): number[] {
+  const starts = maze.plan.flatMap((segment) =>
+    maze.tracks[segment.lang]
+      .filter((cue) => contains(segment, cue.startMs))
+      .map((cue) => cue.startMs),
+  );
+  return [...new Set(starts)].sort((a, b) => a - b);
+}

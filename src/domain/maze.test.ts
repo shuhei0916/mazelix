@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Cue } from "./cue";
-import { prepareMaze, remaze, subtitleTextAt, toggleLangAt } from "./maze";
+import {
+  nextSentenceStart,
+  prepareMaze,
+  previousSentenceStart,
+  remaze,
+  subtitleTextAt,
+  toggleLangAt,
+} from "./maze";
 
 describe("字幕を maze する（シナリオ）", () => {
   // 日英で字幕の区切り方もタイミングも異なる、実際の字幕に近い例
@@ -144,5 +151,94 @@ describe("toggleLangAt", () => {
 
   it("ブロックの間の時刻なら、何も変えない", () => {
     expect(toggleLangAt(maze, 3500)).toEqual(maze);
+  });
+});
+
+describe("前・次のセンテンスの開始時刻", () => {
+  // 1〜3 秒、5〜6 秒、8〜9 秒の 3 つのブロック（字幕は 1 枚ずつ）
+  const maze = prepareMaze(
+    {
+      ja: [
+        { startMs: 1000, endMs: 3000, text: "一つ目" },
+        { startMs: 5000, endMs: 6000, text: "二つ目" },
+        { startMs: 8000, endMs: 9000, text: "三つ目" },
+      ],
+      en: [],
+    },
+    { englishRatio: 0, random: () => 0 },
+  );
+
+  describe("nextSentenceStart", () => {
+    it("再生位置より後で、最初に始まる字幕の開始時刻を返す", () => {
+      expect(nextSentenceStart(maze, 2000)).toBe(5000);
+      expect(nextSentenceStart(maze, 4000)).toBe(5000);
+    });
+
+    it("字幕の開始時刻ちょうどなら、その次の字幕を返す", () => {
+      expect(nextSentenceStart(maze, 5000)).toBe(8000);
+    });
+
+    it("最後の字幕より後なら undefined を返す", () => {
+      expect(nextSentenceStart(maze, 8500)).toBeUndefined();
+    });
+  });
+
+  describe("previousSentenceStart", () => {
+    it("今の字幕が始まって 1 秒以上たっていれば、今の字幕の開始時刻を返す（聞き逃したセリフをもう一度聞く）", () => {
+      expect(previousSentenceStart(maze, 2500)).toBe(1000);
+    });
+
+    it("今の字幕が始まってすぐなら、1 つ前の字幕の開始時刻を返す（続けて押すと前へ戻っていける）", () => {
+      expect(previousSentenceStart(maze, 5500)).toBe(1000);
+    });
+
+    it("字幕の間なら、直前の字幕の開始時刻を返す", () => {
+      expect(previousSentenceStart(maze, 7000)).toBe(5000);
+    });
+
+    it("最初の字幕より前なら undefined を返す", () => {
+      expect(previousSentenceStart(maze, 500)).toBeUndefined();
+      expect(previousSentenceStart(maze, 1500)).toBeUndefined();
+    });
+  });
+});
+
+describe("前・次のセンテンスの開始時刻（長いブロックの中）", () => {
+  // 会話が途切れず、1〜7 秒が 1 つのブロックになっている。日英で字幕の区切り方が違う
+  const tracks = {
+    ja: [
+      { startMs: 1100, endMs: 4000, text: "入らない方がいい" },
+      { startMs: 4000, endMs: 7000, text: "どうして？" },
+    ],
+    en: [
+      { startMs: 1000, endMs: 2500, text: "I don't think" },
+      { startMs: 2500, endMs: 4500, text: "we should go in there." },
+      { startMs: 4500, endMs: 6000, text: "Why not?" },
+      // CC の 2 行の字幕は、同じ時刻のキューが 2 つ並ぶ
+      { startMs: 6000, endMs: 7000, text: "Because...", verticalPosition: 80 },
+      { startMs: 6000, endMs: 7000, text: "it's dark.", verticalPosition: 85 },
+    ],
+  };
+  const english = prepareMaze(tracks, { englishRatio: 1, random: () => 0 });
+  const japanese = prepareMaze(tracks, { englishRatio: 0, random: () => 0 });
+
+  it("ブロックの先頭ではなく、表示中の言語の次の字幕の先頭へ進む", () => {
+    expect(nextSentenceStart(english, 1500)).toBe(2500);
+    expect(nextSentenceStart(english, 2500)).toBe(4500);
+    expect(nextSentenceStart(japanese, 1500)).toBe(4000);
+  });
+
+  it("同じ時刻に始まる 2 行の字幕は、1 つの字幕として扱う", () => {
+    expect(nextSentenceStart(english, 4500)).toBe(6000);
+    expect(nextSentenceStart(english, 6000)).toBeUndefined();
+  });
+
+  it("今の字幕が始まって 1 秒以上たっていれば、今の字幕の先頭へ戻る", () => {
+    expect(previousSentenceStart(english, 4000)).toBe(2500);
+  });
+
+  it("今の字幕が始まってすぐなら、1 つ前の字幕の先頭へ戻る", () => {
+    expect(previousSentenceStart(english, 4800)).toBe(2500);
+    expect(previousSentenceStart(japanese, 4500)).toBe(1100);
   });
 });

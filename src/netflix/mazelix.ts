@@ -1,4 +1,11 @@
-import { type Maze, remaze, subtitleTextAt, toggleLangAt } from "../domain/maze";
+import {
+  type Maze,
+  nextSentenceStart,
+  previousSentenceStart,
+  remaze,
+  subtitleTextAt,
+  toggleLangAt,
+} from "../domain/maze";
 import { getEnglishRatio, watchEnglishRatio } from "../settings";
 import type { Fetcher } from "./fetch-subtitle";
 import { loadMaze } from "./load-maze";
@@ -16,14 +23,19 @@ export type MazelixEnv = {
   onMessage: (listener: (event: MessageEvent) => void) => void;
   onKeyDown: (listener: (event: KeyboardEvent) => void) => void;
   onAnimationFrame: (callback: () => void) => void;
+  // Netflix プレイヤーを指定したミリ秒の位置にシークする
+  seek: (timeMs: number) => void;
 };
 
+const SHORTCUTS = { a: "previous", d: "next", w: "toggle-lang" } as const;
+type Shortcut = (typeof SHORTCUTS)[keyof typeof SHORTCUTS];
+
 // Ctrl+W（タブを閉じる）などの組み合わせや、文字の入力中は奪わない
-function isToggleLangKey(event: KeyboardEvent): boolean {
-  if (event.key.toLowerCase() !== "w") return false;
-  if (event.ctrlKey || event.altKey || event.metaKey || event.isComposing) return false;
+function shortcutOf(event: KeyboardEvent): Shortcut | undefined {
+  if (event.ctrlKey || event.altKey || event.metaKey || event.isComposing) return undefined;
   const target = event.target as HTMLElement | null;
-  return !target?.closest?.("input, textarea, select, [contenteditable]");
+  if (target?.closest?.("input, textarea, select, [contenteditable]")) return undefined;
+  return SHORTCUTS[event.key.toLowerCase() as keyof typeof SHORTCUTS];
 }
 
 // マニフェストを受け取って字幕を maze し、動画の再生位置に合わせて描画する。
@@ -35,6 +47,7 @@ export function startMazelix({
   onMessage,
   onKeyDown,
   onAnimationFrame,
+  seek,
 }: MazelixEnv) {
   const { document, location } = window;
   let maze: Maze | undefined;
@@ -106,11 +119,19 @@ export function startMazelix({
   const watchedVideo = () =>
     location.pathname.startsWith("/watch") ? document.querySelector("video") : null;
 
-  // 分からない英文の意味を確かめられるよう、再生位置のセリフの日英を入れ替える
   onKeyDown((event) => {
     const video = watchedVideo();
-    if (!maze || !video || !isToggleLangKey(event)) return;
-    maze = toggleLangAt(maze, video.currentTime * 1000);
+    const shortcut = shortcutOf(event);
+    if (!maze || !video || !shortcut) return;
+    const timeMs = video.currentTime * 1000;
+    if (shortcut === "toggle-lang") {
+      // 分からない英文の意味を確かめられるよう、再生位置のセリフの日英を入れ替える
+      maze = toggleLangAt(maze, timeMs);
+      return;
+    }
+    const target =
+      shortcut === "previous" ? previousSentenceStart(maze, timeMs) : nextSentenceStart(maze, timeMs);
+    if (target !== undefined) seek(target);
   });
 
   const render = () => {
