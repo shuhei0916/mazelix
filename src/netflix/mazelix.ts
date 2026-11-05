@@ -14,7 +14,7 @@ import { createDictionaryPopup, popupPosition, showDefinitions } from "./diction
 import { loadMaze } from "./load-maze";
 import { isForCurrentVideo, watchedMovieId } from "./manifest";
 import { isTextTracksMessage } from "./messages";
-import { createOverlay, subtitleBottom, updateOverlay } from "./overlay";
+import { createOverlay, isPointerOnWord, subtitleBottom, updateOverlay } from "./overlay";
 
 // 操作パネル（再生バーなど）が出ている間だけ DOM にある要素
 const BOTTOM_CONTROLS = ".watch-video--bottom-controls-container";
@@ -202,7 +202,12 @@ export function startMazelix({
         container.getBoundingClientRect(),
         controls?.getBoundingClientRect().top,
       );
-      overlay.style.bottom = `${bottom}px`;
+      // 単語にマウスを乗せている間や辞書を開いている間は、操作パネルが消えても字幕を下げない。
+      // 下げると、クリックしようとした単語がカーソルの下から逃げてしまう。
+      // 上げるのは止めない（下のままだと、操作パネルが単語を覆ってクリックを奪う）
+      const holding = isPointerOnWord(overlay) || !dictionary.hidden;
+      const current = Number.parseFloat(overlay.style.bottom);
+      overlay.style.bottom = `${holding && current > bottom ? current : bottom}px`;
       dictionary.style.fontSize = `${Math.max(14, video.clientHeight * 0.026)}px`;
       const { text, lang } = subtitleAt(maze, video.currentTime * 1000);
       updateOverlay(overlay, text, lang);

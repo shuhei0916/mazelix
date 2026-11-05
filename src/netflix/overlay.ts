@@ -9,6 +9,17 @@ export type OverlayOptions = {
 // Netflix のプレイヤーは、クリックで再生・一時停止、ダブルクリックで全画面を切り替える
 export const POINTER_EVENTS = ["pointerdown", "pointerup", "mousedown", "mouseup", "click", "dblclick"];
 
+// マウスが単語に乗っているオーバーレイ
+const pointerOnWord = new WeakSet<HTMLElement>();
+
+const isWord = (target: EventTarget | null) =>
+  target instanceof Element && target.closest("[data-mazelix-word]") !== null;
+
+// マウスが英語の字幕の単語に乗っているか（クリックしようとしている単語を動かさないため）
+export function isPointerOnWord(overlay: HTMLElement): boolean {
+  return pointerOnWord.has(overlay);
+}
+
 // Netflix の動画の上に重ねて、maze した字幕を表示する要素
 export function createOverlay(doc: Document, { onWordClick }: OverlayOptions = {}): HTMLElement {
   const overlay = doc.createElement("div");
@@ -40,6 +51,12 @@ export function createOverlay(doc: Document, { onWordClick }: OverlayOptions = {
       if (type === "click" && word?.textContent) onWordClick?.(word.textContent, word);
     });
   }
+  overlay.addEventListener("pointerover", (event) => {
+    if (isWord(event.target)) pointerOnWord.add(overlay);
+  });
+  overlay.addEventListener("pointerout", (event) => {
+    if (!isWord(event.relatedTarget)) pointerOnWord.delete(overlay);
+  });
   return overlay;
 }
 
@@ -47,6 +64,8 @@ export function updateOverlay(overlay: HTMLElement, text: string, lang?: Lang): 
   const rendered = `${lang}:${text}`;
   if (overlay.dataset.rendered === rendered) return;
   overlay.dataset.rendered = rendered;
+  // 描き直すと、マウスが乗っていた単語の要素はなくなる
+  pointerOnWord.delete(overlay);
   overlay.hidden = text === "";
   if (lang !== "en") {
     overlay.textContent = text;

@@ -115,6 +115,13 @@ function netflixPage() {
       element.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
       element.click();
     },
+    pointWord(word: string) {
+      const element = [...document.querySelectorAll<HTMLElement>("[data-mazelix-word]")].find(
+        (element) => element.textContent === word,
+      );
+      if (!element) throw new Error(`字幕に「${word}」がない`);
+      element.dispatchEvent(new MouseEvent("pointerover", { bubbles: true }));
+    },
     clickOutside() {
       player.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
       player.click();
@@ -350,6 +357,31 @@ describe("再生バーなどの操作パネルが出ているときは、字幕�
     expect(parseFloat(subtitleOverlay()?.style.bottom ?? "")).toBeGreaterThan(612 - 505);
   });
 
+  it("単語にマウスを乗せている間は、操作パネルが消えても字幕を下げない（クリックしようとした単語が逃げないように）", async () => {
+    await setEnglishRatio(1);
+    await page.expectSubtitle("Run!");
+    page.showControls(505);
+    page.frame();
+    const raised = parseFloat(subtitleOverlay()?.style.bottom ?? "");
+
+    page.pointWord("Run");
+    page.hideControls();
+    page.frame();
+
+    expect(parseFloat(subtitleOverlay()?.style.bottom ?? "")).toBe(raised);
+  });
+
+  it("単語にマウスを乗せていても、操作パネルが出たら字幕を上げる（パネルに単語が隠れないように）", async () => {
+    await setEnglishRatio(1);
+    await page.expectSubtitle("Run!");
+    page.pointWord("Run");
+
+    page.showControls(505);
+    page.frame();
+
+    expect(parseFloat(subtitleOverlay()?.style.bottom ?? "")).toBeGreaterThan(612 - 505);
+  });
+
   it("操作パネルが消えると、字幕をふだんの位置に戻す", () => {
     page.showControls(505);
     page.frame();
@@ -407,6 +439,19 @@ describe("英語の字幕の単語をクリックすると、その単語の意�
     page.clickOutside();
 
     expect(dictionary()).toBe("");
+  });
+
+  it("辞書を開いている間は、操作パネルが消えても字幕を下げない", async () => {
+    page.showControls(505);
+    page.frame();
+    const raised = parseFloat(subtitleOverlay()?.style.bottom ?? "");
+    page.clickWord("Run");
+    await vi.waitFor(() => expect(dictionary()).toContain("走る"));
+
+    page.hideControls();
+    page.frame();
+
+    expect(parseFloat(subtitleOverlay()?.style.bottom ?? "")).toBe(raised);
   });
 
   it("作品一覧に戻ると、辞書も消す", async () => {

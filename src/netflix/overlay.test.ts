@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { createOverlay, subtitleBottom, updateOverlay } from "./overlay";
+import { createOverlay, isPointerOnWord, subtitleBottom, updateOverlay } from "./overlay";
 
 describe("updateOverlay", () => {
   it("字幕の文字を表示する", () => {
@@ -125,5 +125,22 @@ describe("単語のクリック", () => {
     }
 
     expect(netflix).not.toHaveBeenCalled();
+  });
+});
+
+describe("isPointerOnWord（単語を狙っている間は、字幕を動かさないため）", () => {
+  it("マウスが単語に乗っている間だけ true", () => {
+    const player = document.createElement("div");
+    const overlay = createOverlay(document);
+    player.append(overlay);
+    updateOverlay(overlay, "Run, Jim!", "en");
+    const jim = overlay.querySelectorAll<HTMLElement>("[data-mazelix-word]")[1];
+    if (!jim) throw new Error("単語の要素がない");
+
+    jim.dispatchEvent(new MouseEvent("pointerover", { bubbles: true }));
+    expect(isPointerOnWord(overlay)).toBe(true);
+
+    jim.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: player }));
+    expect(isPointerOnWord(overlay)).toBe(false);
   });
 });
