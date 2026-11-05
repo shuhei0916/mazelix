@@ -24,6 +24,8 @@ Chrome ウェブストアで審査中です（v0.1.0、2026-10-23 提出）。
 | `d` | 次のセリフの先頭に進む |
 | `w` | 表示中のセリフの日英を入れ替える（英文の意味が分からないときに、日本語で確かめられる） |
 
+英語の字幕の単語をクリックすると、その単語の意味（英和辞書）を表示します。
+
 ## 開発
 
 Node.js 22 以上が必要です。
@@ -52,6 +54,7 @@ npm run zip         # Chrome ウェブストアに提出する zip を作る
 |---|---|
 | `src/domain/` | 字幕を maze するロジック（Netflix にも Chrome にも依存しない純粋な関数） |
 | `src/netflix/` | Netflix の字幕形式やマニフェストの扱い、字幕の表示 |
+| `public/dictionary/` | 同梱する英和辞書（EJDict。`scripts/build-dictionary.py` で作る） |
 | `src/data/` | 同梱するデータ（英単語の頻度。`scripts/build-word-frequency.py` で作る） |
 | `src/popup/` | 英語の割合を設定するポップアップの部品 |
 | `src/settings.ts` | 設定（英語の割合）の保存と監視 |
@@ -63,3 +66,5 @@ npm run zip         # Chrome ウェブストアに提出する zip を作る
 
 英文の難しさを測るための英単語の頻度（`src/data/en-word-frequency.txt`）は、Robyn Speer さんの [wordfreq](https://github.com/rspeer/wordfreq) のデータから作ったもので、[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) で配布します。
 wordfreq には [SUBTLEX](https://www.ugent.be/pp/experimentele-psychologie/en/research/documents/subtlexus)（Brysbaert ほか。SUBTLEX は自由に使えるデータです）、[OpenSubtitles](http://www.opensubtitles.org/)（OPUS OpenSubtitles 2018 経由）、[Google Books Ngrams](http://books.google.com/ngrams)、Wikipedia などのデータが含まれています。
+
+英和辞書（`public/dictionary/ejdict.txt`）は、kujirahand さんの [EJDict](https://github.com/kujirahand/EJDict)（パブリックドメイン、CC0）を使っています。

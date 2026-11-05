@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createOverlay, subtitleBottom, updateOverlay } from "./overlay";
 
 describe("updateOverlay", () => {
@@ -60,5 +60,70 @@ describe("subtitleBottom（字幕の下端を、動画の下端から何 px 上�
 
   it("操作パネルが低く、ふだんの位置と重ならないなら、ふだんの位置のまま", () => {
     expect(subtitleBottom(player, 600)).toBeCloseTo(61.2);
+  });
+});
+
+describe("updateOverlay（英語の字幕の単語）", () => {
+  const words = (overlay: HTMLElement) =>
+    [...overlay.querySelectorAll<HTMLElement>("[data-mazelix-word]")].map((word) => word.textContent);
+
+  it("英語の字幕は、単語ごとの要素に分けて描画する", () => {
+    const overlay = createOverlay(document);
+
+    updateOverlay(overlay, "Run, Jim!", "en");
+
+    expect(words(overlay)).toEqual(["Run", "Jim"]);
+    expect(overlay.textContent).toBe("Run, Jim!");
+  });
+
+  it("日本語の字幕は、単語に分けない", () => {
+    const overlay = createOverlay(document);
+
+    updateOverlay(overlay, "走れ、ジム！", "ja");
+
+    expect(words(overlay)).toEqual([]);
+    expect(overlay.textContent).toBe("走れ、ジム！");
+  });
+
+  it("同じ文字でも言語が変われば、描画し直す", () => {
+    const overlay = createOverlay(document);
+    updateOverlay(overlay, "OK", "ja");
+
+    updateOverlay(overlay, "OK", "en");
+
+    expect(words(overlay)).toEqual(["OK"]);
+  });
+});
+
+describe("単語のクリック", () => {
+  function setUp() {
+    const onWordClick = vi.fn();
+    const player = document.createElement("div");
+    const overlay = createOverlay(document, { onWordClick });
+    player.append(overlay);
+    document.body.append(player);
+    updateOverlay(overlay, "Run, Jim!", "en");
+    const jim = overlay.querySelectorAll<HTMLElement>("[data-mazelix-word]")[1];
+    if (!jim) throw new Error("単語の要素がない");
+    return { onWordClick, player, jim };
+  }
+
+  it("単語をクリックすると、その単語を知らせる", () => {
+    const { onWordClick, jim } = setUp();
+
+    jim.click();
+
+    expect(onWordClick).toHaveBeenCalledWith("Jim", jim);
+  });
+
+  it("単語の操作は Netflix のプレイヤーに伝えない（再生・一時停止や全画面が切り替わらないように）", () => {
+    const { player, jim } = setUp();
+    const netflix = vi.fn();
+    for (const type of ["pointerdown", "pointerup", "mousedown", "mouseup", "click", "dblclick"]) {
+      player.addEventListener(type, netflix);
+      jim.dispatchEvent(new MouseEvent(type, { bubbles: true }));
+    }
+
+    expect(netflix).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeBrowser } from "wxt/testing/fake-browser";
+import { lookUp } from "../domain/dictionary";
 import { setEnglishRatio } from "../settings";
 import { startMazelix } from "./mazelix";
 import { textTracksMessage } from "./messages";
@@ -12,6 +13,9 @@ const episodes: Record<number, { ja: string[]; en: string[] }> = {
   2: { ja: ["止まれ！"], en: ["Stop!"] },
   3: { ja: ["分からない", "可能性はほぼない"], en: ["I don't know.", "The probability is negligible."] },
 };
+
+// 英和辞書
+const meanings: Record<string, string> = { run: "『走る』,駆ける / 〈人が〉『急ぐ』" };
 
 // Zipf 尺度の英単語の頻度
 const zipf: Record<string, number> = {
@@ -76,6 +80,9 @@ function netflixPage() {
     },
     seek: (timeMs) => seeks.push(timeMs),
     wordFrequency: (word) => zipf[word],
+    lookUpWord: async (word) => lookUp((headword) => meanings[headword], word),
+    onPointerDown: (listener) =>
+      window.addEventListener("pointerdown", listener, { capture: true, signal }),
   });
 
   return {
@@ -99,6 +106,18 @@ function netflixPage() {
     },
     frame() {
       nextFrame?.();
+    },
+    clickWord(word: string) {
+      const element = [...document.querySelectorAll<HTMLElement>("[data-mazelix-word]")].find(
+        (element) => element.textContent === word,
+      );
+      if (!element) throw new Error(`字幕に「${word}」がない`);
+      element.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+      element.click();
+    },
+    clickOutside() {
+      player.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+      player.click();
     },
     open(pathname: string) {
       history.pushState(null, "", pathname);
@@ -339,5 +358,64 @@ describe("再生バーなどの操作パネルが出ているときは、字幕�
     page.frame();
 
     expect(parseFloat(subtitleOverlay()?.style.bottom ?? "")).toBeCloseTo(61.2);
+  });
+});
+
+describe("英語の字幕の単語をクリックすると、その単語の意味を表示する", () => {
+  let page: ReturnType<typeof netflixPage>;
+  const dictionary = () => {
+    const popup = document.querySelector<HTMLElement>("[data-mazelix=dictionary]");
+    return popup && !popup.hidden ? (popup.textContent ?? "") : "";
+  };
+
+  beforeEach(async () => {
+    fakeBrowser.reset();
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    await setEnglishRatio(1);
+    page = netflixPage();
+    page.open("/watch/1");
+    page.receiveManifest(1);
+    await page.expectSubtitle("Run!");
+  });
+
+  afterEach(() => {
+    page.close();
+    document.body.replaceChildren();
+    document.head.replaceChildren();
+    vi.restoreAllMocks();
+  });
+
+  it("単語をクリックすると、辞書を表示する", async () => {
+    page.clickWord("Run");
+
+    await vi.waitFor(() => expect(dictionary()).toContain("『走る』,駆ける"));
+  });
+
+  it("同じ単語をもう一度クリックすると、辞書を閉じる", async () => {
+    page.clickWord("Run");
+    await vi.waitFor(() => expect(dictionary()).toContain("走る"));
+
+    page.clickWord("Run");
+
+    await vi.waitFor(() => expect(dictionary()).toBe(""));
+  });
+
+  it("辞書の外をクリックすると、辞書を閉じる", async () => {
+    page.clickWord("Run");
+    await vi.waitFor(() => expect(dictionary()).toContain("走る"));
+
+    page.clickOutside();
+
+    expect(dictionary()).toBe("");
+  });
+
+  it("作品一覧に戻ると、辞書も消す", async () => {
+    page.clickWord("Run");
+    await vi.waitFor(() => expect(dictionary()).toContain("走る"));
+
+    page.open("/browse");
+    page.frame();
+
+    expect(dictionary()).toBe("");
   });
 });

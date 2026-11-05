@@ -27,6 +27,13 @@ export function prepareMaze(tracks: Record<Lang, Cue[]>, options: MazeOptions): 
   return remaze({ tracks: cleaned, plan: [] }, options);
 }
 
+// 表示する字幕の文字と、その言語。表示する字幕がなければ空文字
+export function subtitleAt(maze: Maze, timeMs: number): { text: string; lang: Lang | undefined } {
+  const text = subtitleTextAt(maze, timeMs);
+  const lang = maze.plan.find((segment) => contains(segment, timeMs))?.lang;
+  return { text, lang: text === "" ? undefined : lang };
+}
+
 export function subtitleTextAt(maze: Maze, timeMs: number): string {
   return selectCues(maze.plan, maze.tracks, timeMs)
     .toSorted(byVerticalPosition)

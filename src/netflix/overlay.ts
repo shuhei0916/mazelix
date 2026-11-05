@@ -1,5 +1,16 @@
+import type { Lang } from "../domain/lang";
+import { splitWords } from "../domain/words";
+
+export type OverlayOptions = {
+  // 英語の字幕の単語がクリックされたとき
+  onWordClick?: (word: string, element: HTMLElement) => void;
+};
+
+// Netflix のプレイヤーは、クリックで再生・一時停止、ダブルクリックで全画面を切り替える
+export const POINTER_EVENTS = ["pointerdown", "pointerup", "mousedown", "mouseup", "click", "dblclick"];
+
 // Netflix の動画の上に重ねて、maze した字幕を表示する要素
-export function createOverlay(doc: Document): HTMLElement {
+export function createOverlay(doc: Document, { onWordClick }: OverlayOptions = {}): HTMLElement {
   const overlay = doc.createElement("div");
   overlay.dataset.mazelix = "subtitle";
   Object.assign(overlay.style, {
@@ -17,16 +28,41 @@ export function createOverlay(doc: Document): HTMLElement {
     textShadow: "0 0 4px black, 0 0 2px black",
     fontFamily: "sans-serif",
     lineHeight: "1.3",
+    // 単語以外の場所の操作は、下の Netflix のプレイヤーに届ける
     pointerEvents: "none",
   });
   overlay.hidden = true;
+  // 単語の操作は Netflix のプレイヤーに伝えない
+  for (const type of POINTER_EVENTS) {
+    overlay.addEventListener(type, (event) => {
+      event.stopPropagation();
+      const word = (event.target as HTMLElement).closest<HTMLElement>("[data-mazelix-word]");
+      if (type === "click" && word?.textContent) onWordClick?.(word.textContent, word);
+    });
+  }
   return overlay;
 }
 
-export function updateOverlay(overlay: HTMLElement, text: string): void {
-  if (overlay.textContent === text) return;
-  overlay.textContent = text;
+export function updateOverlay(overlay: HTMLElement, text: string, lang?: Lang): void {
+  const rendered = `${lang}:${text}`;
+  if (overlay.dataset.rendered === rendered) return;
+  overlay.dataset.rendered = rendered;
   overlay.hidden = text === "";
+  if (lang !== "en") {
+    overlay.textContent = text;
+    return;
+  }
+  const doc = overlay.ownerDocument;
+  overlay.replaceChildren(
+    ...splitWords(text).map(({ text, isWord }) => {
+      if (!isWord) return doc.createTextNode(text);
+      const word = doc.createElement("span");
+      word.dataset.mazelixWord = "";
+      word.textContent = text;
+      Object.assign(word.style, { pointerEvents: "auto", cursor: "pointer" });
+      return word;
+    }),
+  );
 }
 
 const USUAL_BOTTOM = 0.1;

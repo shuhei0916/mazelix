@@ -1,3 +1,5 @@
+import { lookUp } from "../src/domain/dictionary";
+import { loadOnce } from "../src/netflix/dictionary";
 import { startMazelix } from "../src/netflix/mazelix";
 import { seekMessage } from "../src/netflix/messages";
 import { englishWordFrequency } from "../src/netflix/word-frequency";
@@ -9,6 +11,12 @@ export default defineContentScript({
   matches: ["https://www.netflix.com/*"],
   runAt: "document_start",
   main(ctx) {
+    // 英和辞書（EJDict、約 4MB）は、初めて単語をクリックしたときに拡張機能の中から読む
+    const loadDictionary = loadOnce(async () => {
+      const response = await fetch(browser.runtime.getURL("/dictionary/ejdict.txt"));
+      if (!response.ok) throw new Error(`辞書を読み込めませんでした: ${response.status}`);
+      return response.text();
+    });
     const unwatch = startMazelix({
       window,
       fetcher: (url) => fetch(url),
@@ -21,6 +29,9 @@ export default defineContentScript({
       // Netflix プレイヤーの API はページ側からしか呼べないので、player-control に頼む
       seek: (timeMs) => window.postMessage(seekMessage(timeMs), location.origin),
       wordFrequency: englishWordFrequency,
+      lookUpWord: async (word) => lookUp(await loadDictionary(), word),
+      onPointerDown: (listener) =>
+        ctx.addEventListener(window, "pointerdown", listener, { capture: true }),
     });
     ctx.onInvalidated(() => {
       try {

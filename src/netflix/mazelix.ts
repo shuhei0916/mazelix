@@ -1,14 +1,16 @@
 import type { WordFrequency } from "../domain/difficulty";
+import type { Definition } from "../domain/dictionary";
 import {
   type Maze,
   nextSentenceStart,
   previousSentenceStart,
   remaze,
-  subtitleTextAt,
+  subtitleAt,
   toggleLangAt,
 } from "../domain/maze";
 import { getEnglishRatio, watchEnglishRatio } from "../settings";
 import type { Fetcher } from "./fetch-subtitle";
+import { createDictionaryPopup, popupPosition, showDefinitions } from "./dictionary-popup";
 import { loadMaze } from "./load-maze";
 import { isForCurrentVideo, watchedMovieId } from "./manifest";
 import { isTextTracksMessage } from "./messages";
@@ -31,6 +33,10 @@ export type MazelixEnv = {
   seek: (timeMs: number) => void;
   // 英単語の頻度。簡単な英文のセリフから順に英語にするのに使う
   wordFrequency: WordFrequency;
+  // 英単語を英和辞書で引く
+  lookUpWord: (word: string) => Promise<Definition[]>;
+  // 辞書の外をクリックしたら閉じるために、ページのどこかが押されたことを受け取る
+  onPointerDown: (listener: (event: PointerEvent) => void) => void;
 };
 
 const SHORTCUTS = { a: "previous", d: "next", w: "toggle-lang" } as const;
@@ -55,11 +61,52 @@ export function startMazelix({
   onAnimationFrame,
   seek,
   wordFrequency,
+  lookUpWord,
+  onPointerDown,
 }: MazelixEnv) {
   const { document, location } = window;
   let maze: Maze | undefined;
   let latestLoad = 0;
-  const overlay = createOverlay(document);
+  // 辞書を開いている単語の要素
+  let lookedUpWord: HTMLElement | undefined;
+  const closeDictionary = () => {
+    lookedUpWord = undefined;
+    dictionary.hidden = true;
+  };
+  const dictionary = createDictionaryPopup(document, { onClose: closeDictionary });
+
+  const openDictionary = async (word: string, element: HTMLElement) => {
+    // 同じ単語をもう一度クリックしたら閉じる
+    if (lookedUpWord === element) return closeDictionary();
+    lookedUpWord = element;
+    let definitions: Definition[];
+    try {
+      definitions = await lookUpWord(word);
+    } catch (error) {
+      console.warn("[mazelix] 辞書を読み込めませんでした", error);
+      return;
+    }
+    // 引いている間に、別の単語をクリックしたり閉じたりしていたら表示しない
+    if (lookedUpWord !== element) return;
+    showDefinitions(dictionary, word, definitions);
+    const player = dictionary.parentElement;
+    if (!player) return;
+    const { left, bottom } = popupPosition(
+      element.getBoundingClientRect(),
+      player.getBoundingClientRect(),
+      dictionary.offsetWidth,
+    );
+    Object.assign(dictionary.style, { left: `${left}px`, bottom: `${bottom}px` });
+  };
+  const overlay = createOverlay(document, {
+    onWordClick: (word, element) => void openDictionary(word, element),
+  });
+
+  onPointerDown((event) => {
+    const target = event.target as Node | null;
+    if (!lookedUpWord || dictionary.contains(target) || overlay.contains(target)) return;
+    closeDictionary();
+  });
   const hideNetflixSubtitles = document.createElement("style");
   hideNetflixSubtitles.textContent = HIDE_NETFLIX_SUBTITLES;
 
@@ -147,7 +194,7 @@ export function startMazelix({
     const video = watchedVideo();
     const container = video?.parentElement;
     if (maze && video && container) {
-      if (overlay.parentElement !== container) container.append(overlay);
+      if (overlay.parentElement !== container) container.append(overlay, dictionary);
       if (!hideNetflixSubtitles.isConnected) document.head.append(hideNetflixSubtitles);
       overlay.style.fontSize = `${Math.max(16, video.clientHeight * 0.045)}px`;
       const controls = document.querySelector(BOTTOM_CONTROLS);
@@ -156,9 +203,13 @@ export function startMazelix({
         controls?.getBoundingClientRect().top,
       );
       overlay.style.bottom = `${bottom}px`;
-      updateOverlay(overlay, subtitleTextAt(maze, video.currentTime * 1000));
+      dictionary.style.fontSize = `${Math.max(14, video.clientHeight * 0.026)}px`;
+      const { text, lang } = subtitleAt(maze, video.currentTime * 1000);
+      updateOverlay(overlay, text, lang);
     } else {
       overlay.remove();
+      closeDictionary();
+      dictionary.remove();
       hideNetflixSubtitles.remove();
     }
     onAnimationFrame(render);

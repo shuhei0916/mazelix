@@ -5,5 +5,9 @@ export default defineConfig({
     name: "mazelix",
     description: "Netflix の字幕を日英で混ぜて表示し、ドラマを観ながら英語に触れる",
     permissions: ["storage"],
+    // content script から英和辞書のファイルを読むため
+    web_accessible_resources: [
+      { resources: ["dictionary/ejdict.txt"], matches: ["https://www.netflix.com/*"] },
+    ],
   },
 });

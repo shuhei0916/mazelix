@@ -5,6 +5,7 @@ import {
   prepareMaze,
   previousSentenceStart,
   remaze,
+  subtitleAt,
   subtitleTextAt,
   toggleLangAt,
 } from "./maze";
@@ -57,6 +58,23 @@ describe("英文の難易度を使って maze する（シナリオ）", () => {
 
     expect(subtitleTextAt(maze, 1500)).toBe("可能性はほぼない");
     expect(subtitleTextAt(maze, 3500)).toBe("I don't know.");
+  });
+});
+
+describe("subtitleAt", () => {
+  const ja: Cue = { startMs: 1000, endMs: 2000, text: "走れ！" };
+  const en: Cue = { startMs: 1000, endMs: 2000, text: "Run!" };
+
+  it("表示する字幕の文字と、その言語を返す", () => {
+    const maze = prepareMaze({ ja: [ja], en: [en] }, { englishRatio: 1, random: () => 0 });
+
+    expect(subtitleAt(maze, 1500)).toEqual({ text: "Run!", lang: "en" });
+  });
+
+  it("表示する字幕がなければ、空文字を返す", () => {
+    const maze = prepareMaze({ ja: [ja], en: [en] }, { englishRatio: 1, random: () => 0 });
+
+    expect(subtitleAt(maze, 3000)).toEqual({ text: "", lang: undefined });
   });
 });
 
