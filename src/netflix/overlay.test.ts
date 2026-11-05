@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { createOverlay, updateOverlay } from "./overlay";
+import { createOverlay, subtitleBottom, updateOverlay } from "./overlay";
 
 describe("updateOverlay", () => {
   it("字幕の文字を表示する", () => {
@@ -43,5 +43,22 @@ describe("updateOverlay（毎フレーム呼ばれるため）", () => {
     updateOverlay(overlay, "走れ！");
 
     expect(overlay.firstChild).toBe(textNode);
+  });
+});
+
+describe("subtitleBottom（字幕の下端を、動画の下端から何 px 上げるか）", () => {
+  const player = { bottom: 612, height: 612 };
+
+  it("操作パネルが出ていなければ、動画の高さの 10% 上に表示する", () => {
+    expect(subtitleBottom(player, undefined)).toBeCloseTo(61.2);
+  });
+
+  it("操作パネルが出ていれば、パネルの上端より少し上に表示する", () => {
+    // パネルの上端が 505px なら、動画の下端から 107px。そこから動画の高さの 2% あける
+    expect(subtitleBottom(player, 505)).toBeCloseTo(107 + 12.24);
+  });
+
+  it("操作パネルが低く、ふだんの位置と重ならないなら、ふだんの位置のまま", () => {
+    expect(subtitleBottom(player, 600)).toBeCloseTo(61.2);
   });
 });

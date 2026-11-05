@@ -11,7 +11,10 @@ import type { Fetcher } from "./fetch-subtitle";
 import { loadMaze } from "./load-maze";
 import { isForCurrentVideo, watchedMovieId } from "./manifest";
 import { isTextTracksMessage } from "./messages";
-import { createOverlay, updateOverlay } from "./overlay";
+import { createOverlay, subtitleBottom, updateOverlay } from "./overlay";
+
+// 操作パネル（再生バーなど）が出ている間だけ DOM にある要素
+const BOTTOM_CONTROLS = ".watch-video--bottom-controls-container";
 
 const HIDE_NETFLIX_SUBTITLES = ".player-timedtext, .image-based-timed-text { display: none !important; }";
 
@@ -142,6 +145,12 @@ export function startMazelix({
       if (overlay.parentElement !== container) container.append(overlay);
       if (!hideNetflixSubtitles.isConnected) document.head.append(hideNetflixSubtitles);
       overlay.style.fontSize = `${Math.max(16, video.clientHeight * 0.045)}px`;
+      const controls = document.querySelector(BOTTOM_CONTROLS);
+      const bottom = subtitleBottom(
+        container.getBoundingClientRect(),
+        controls?.getBoundingClientRect().top,
+      );
+      overlay.style.bottom = `${bottom}px`;
       updateOverlay(overlay, subtitleTextAt(maze, video.currentTime * 1000));
     } else {
       overlay.remove();

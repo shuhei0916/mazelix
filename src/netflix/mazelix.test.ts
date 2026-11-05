@@ -39,6 +39,8 @@ function netflixPage() {
   Object.defineProperty(video, "currentTime", { value: 1.5, writable: true });
   player.append(video);
   document.body.append(player);
+  // jsdom はレイアウトしないので、高さ 612px の動画の位置を決めておく
+  vi.spyOn(player, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1088, 612));
   // テストごとにイベントの待ち受けを外し、前のテストの mazelix が反応しないようにする
   const listening = new AbortController();
   const { signal } = listening;
@@ -65,6 +67,19 @@ function netflixPage() {
     playAt(seconds: number) {
       video.currentTime = seconds;
     },
+    // Netflix は、操作パネルが出ている間だけパネルの要素を置く
+    showControls(top: number) {
+      const controls = document.createElement("div");
+      controls.className = "watch-video--bottom-controls-container ltr-1jnlk6v";
+      vi.spyOn(controls, "getBoundingClientRect").mockReturnValue(new DOMRect(0, top, 1088, 612 - top));
+      player.append(controls);
+    },
+    hideControls() {
+      document.querySelector(".watch-video--bottom-controls-container")?.remove();
+    },
+    frame() {
+      nextFrame?.();
+    },
     open(pathname: string) {
       history.pushState(null, "", pathname);
     },
@@ -83,6 +98,10 @@ function netflixPage() {
       });
     },
   };
+}
+
+function subtitleOverlay(): HTMLElement | null {
+  return document.querySelector<HTMLElement>("[data-mazelix=subtitle]");
 }
 
 function subtitle(): string {
@@ -251,5 +270,43 @@ describe("a / d キーで、前・次のセリフの先頭に移る", () => {
     page.pressKey("d", {}, input);
 
     expect(page.seeks).toEqual([]);
+  });
+});
+
+describe("再生バーなどの操作パネルが出ているときは、字幕を上げて重ならないようにする", () => {
+  let page: ReturnType<typeof netflixPage>;
+
+  beforeEach(async () => {
+    fakeBrowser.reset();
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    await setEnglishRatio(0);
+    page = netflixPage();
+    page.open("/watch/1");
+    page.receiveManifest(1);
+    await page.expectSubtitle("走れ！");
+  });
+
+  afterEach(() => {
+    page.close();
+    document.body.replaceChildren();
+    document.head.replaceChildren();
+    vi.restoreAllMocks();
+  });
+
+  it("操作パネルが出ると、パネルの上端より上に字幕を上げる", () => {
+    page.showControls(505);
+    page.frame();
+
+    expect(parseFloat(subtitleOverlay()?.style.bottom ?? "")).toBeGreaterThan(612 - 505);
+  });
+
+  it("操作パネルが消えると、字幕をふだんの位置に戻す", () => {
+    page.showControls(505);
+    page.frame();
+
+    page.hideControls();
+    page.frame();
+
+    expect(parseFloat(subtitleOverlay()?.style.bottom ?? "")).toBeCloseTo(61.2);
   });
 });
