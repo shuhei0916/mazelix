@@ -1,3 +1,4 @@
+import type { WordFrequency } from "../domain/difficulty";
 import {
   type Maze,
   nextSentenceStart,
@@ -28,6 +29,8 @@ export type MazelixEnv = {
   onAnimationFrame: (callback: () => void) => void;
   // Netflix プレイヤーを指定したミリ秒の位置にシークする
   seek: (timeMs: number) => void;
+  // 英単語の頻度。簡単な英文のセリフから順に英語にするのに使う
+  wordFrequency: WordFrequency;
 };
 
 const SHORTCUTS = { a: "previous", d: "next", w: "toggle-lang" } as const;
@@ -51,6 +54,7 @@ export function startMazelix({
   onKeyDown,
   onAnimationFrame,
   seek,
+  wordFrequency,
 }: MazelixEnv) {
   const { document, location } = window;
   let maze: Maze | undefined;
@@ -61,7 +65,7 @@ export function startMazelix({
 
   // ポップアップで英語の割合が変わったら、再生中の字幕の計画を作り直す
   const unwatch = watchEnglishRatio((englishRatio) => {
-    if (maze) maze = remaze(maze, { englishRatio, random });
+    if (maze) maze = remaze(maze, { englishRatio, random, wordFrequency });
   });
 
   // 再生中に「次のエピソード」へ進むと、先読みしておいたマニフェストが使い回されて
@@ -106,6 +110,7 @@ export function startMazelix({
       const loaded = await loadMaze(textTracks, fetcher, {
         englishRatio: await getEnglishRatio(),
         random,
+        wordFrequency,
       });
       if (load !== latestLoad) return;
       maze = loaded;

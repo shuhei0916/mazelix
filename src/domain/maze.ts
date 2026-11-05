@@ -1,7 +1,8 @@
-import { groupIntoBlocks } from "./blocks";
+import { type Block, groupIntoBlocks } from "./blocks";
 import { normalizeAllCaps, removeSoundDescriptions } from "./captions";
 import { byReadingOrder, byVerticalPosition, type Cue } from "./cue";
 import type { Lang } from "./lang";
+import { englishDifficulty, type WordFrequency } from "./difficulty";
 import { createMazePlan, type Segment } from "./maze-plan";
 import { selectCues } from "./select-cues";
 import { contains } from "./time-range";
@@ -14,6 +15,8 @@ export type Maze = {
 export type MazeOptions = {
   englishRatio: number;
   random: () => number;
+  // 英単語の頻度。あれば、簡単な英文のブロックから順に英語にする
+  wordFrequency?: WordFrequency;
 };
 
 export function prepareMaze(tracks: Record<Lang, Cue[]>, options: MazeOptions): Maze {
@@ -32,10 +35,13 @@ export function subtitleTextAt(maze: Maze, timeMs: number): string {
 }
 
 // 取得済みの字幕はそのままに、表示する言語の計画だけを作り直す（英語の割合を変えたときなど）
-export function remaze(maze: Maze, options: MazeOptions): Maze {
+export function remaze(maze: Maze, { englishRatio, random, wordFrequency }: MazeOptions): Maze {
+  const difficulty = wordFrequency
+    ? (block: Block) => englishDifficulty(block.cues.en.map((cue) => cue.text).join(" "), wordFrequency)
+    : undefined;
   return {
     tracks: maze.tracks,
-    plan: createMazePlan({ blocks: groupIntoBlocks(maze.tracks), ...options }),
+    plan: createMazePlan({ blocks: groupIntoBlocks(maze.tracks), englishRatio, random, difficulty }),
   };
 }
 

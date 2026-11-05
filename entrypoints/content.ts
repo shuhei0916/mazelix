@@ -1,5 +1,6 @@
 import { startMazelix } from "../src/netflix/mazelix";
 import { seekMessage } from "../src/netflix/messages";
+import { englishWordFrequency } from "../src/netflix/word-frequency";
 
 // Netflix はページを再読み込みせずに画面を切り替える（SPA）ため、
 // /watch/* だけでなく www.netflix.com 全体で content script を動かす。
@@ -19,6 +20,7 @@ export default defineContentScript({
       onAnimationFrame: (callback) => ctx.requestAnimationFrame(callback),
       // Netflix プレイヤーの API はページ側からしか呼べないので、player-control に頼む
       seek: (timeMs) => window.postMessage(seekMessage(timeMs), location.origin),
+      wordFrequency: englishWordFrequency,
     });
     ctx.onInvalidated(() => {
       try {

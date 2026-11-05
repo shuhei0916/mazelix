@@ -6,10 +6,22 @@ import { startMazelix } from "./mazelix";
 import { textTracksMessage } from "./messages";
 import { ttml } from "./ttml.fixture";
 
-// 1〜2 秒にセリフが 1 つだけあるエピソード
-const episodes: Record<number, { ja: string; en: string }> = {
-  1: { ja: "走れ！", en: "Run!" },
-  2: { ja: "止まれ！", en: "Stop!" },
+// セリフは 1〜2 秒、3〜4 秒、…に 1 つずつある。エピソード 1・2 は 1〜2 秒のセリフだけ
+const episodes: Record<number, { ja: string[]; en: string[] }> = {
+  1: { ja: ["走れ！"], en: ["Run!"] },
+  2: { ja: ["止まれ！"], en: ["Stop!"] },
+  3: { ja: ["分からない", "可能性はほぼない"], en: ["I don't know.", "The probability is negligible."] },
+};
+
+// Zipf 尺度の英単語の頻度
+const zipf: Record<string, number> = {
+  i: 6.5,
+  "don't": 6.2,
+  know: 6.0,
+  the: 7.7,
+  is: 7.0,
+  probability: 4.0,
+  negligible: 3.4,
 };
 
 function textTracks(movieId: number) {
@@ -26,8 +38,15 @@ function textTracks(movieId: number) {
 
 async function fetcher(url: string) {
   const [, movieId, language] = /^https:\/\/cdn\/(\d+)\/(ja|en)$/.exec(url) ?? [];
-  const text = episodes[Number(movieId)]?.[language as "ja" | "en"];
-  const body = text && ttml(`<p begin="10000000t" end="20000000t" style="style0">${text}</p>`);
+  const lines = episodes[Number(movieId)]?.[language as "ja" | "en"];
+  const tick = (seconds: number) => `${seconds * 10000000}t`;
+  const body =
+    lines &&
+    ttml(
+      lines
+        .map((text, i) => `<p begin="${tick(i * 2 + 1)}" end="${tick(i * 2 + 2)}" style="style0">${text}</p>`)
+        .join(""),
+    );
   return { ok: body !== undefined, text: async () => body ?? "" };
 }
 
@@ -56,6 +75,7 @@ function netflixPage() {
       nextFrame = callback;
     },
     seek: (timeMs) => seeks.push(timeMs),
+    wordFrequency: (word) => zipf[word],
   });
 
   return {
@@ -152,6 +172,17 @@ describe("Netflix の再生ページで字幕を maze する", () => {
     page.open("/watch/2");
 
     await page.expectSubtitle("止まれ！");
+  });
+
+  it("英語の割合が 50% なら、簡単な英文のセリフを英語にする", async () => {
+    await setEnglishRatio(0.5);
+    page.open("/watch/3");
+    page.receiveManifest(3);
+    await page.expectSubtitle("I don't know.");
+
+    page.playAt(3.5);
+
+    await page.expectSubtitle("可能性はほぼない");
   });
 
   it("作品一覧に戻ると、字幕を消す", async () => {

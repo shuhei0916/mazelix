@@ -3,9 +3,9 @@ import type { Block } from "./blocks";
 import type { Cue } from "./cue";
 import { createMazePlan } from "./maze-plan";
 
-function bilingualBlock(startMs: number, endMs: number): Block {
+function bilingualBlock(startMs: number, endMs: number, english = "English"): Block {
   const cue = (text: string): Cue => ({ startMs, endMs, text });
-  return { startMs, endMs, cues: { ja: [cue("日本語")], en: [cue("English")] } };
+  return { startMs, endMs, cues: { ja: [cue("日本語")], en: [cue(english)] } };
 }
 
 function manyBlocks(count: number): Block[] {
@@ -80,5 +80,37 @@ describe("createMazePlan", () => {
     expect(
       createMazePlan({ blocks: [japaneseOnly], englishRatio: 1, random: Math.random }),
     ).toEqual([{ startMs: 2000, endMs: 3000, lang: "ja" }]);
+  });
+});
+
+describe("createMazePlan（英文の難易度を使うとき）", () => {
+  // 英文の長さを難易度とみなす
+  const difficulty = (block: Block) => block.cues.en[0]?.text.length ?? 0;
+  const blocks = ["Hard one", "Run", "Very hard one", "Go", "Harder one"].map((english, i) =>
+    bilingualBlock(i * 2000, i * 2000 + 1000, english),
+  );
+
+  it("英語の割合の数だけ、簡単な英文のブロックから順に英語にする", () => {
+    const plan = createMazePlan({ blocks, englishRatio: 0.4, random: () => 0, difficulty });
+
+    expect(plan.map((segment) => segment.lang)).toEqual(["ja", "en", "ja", "en", "ja"]);
+  });
+
+  it("英語の割合が 1 なら、難しい英文もすべて英語にする", () => {
+    const plan = createMazePlan({ blocks, englishRatio: 1, random: () => 0, difficulty });
+
+    expect(plan.map((segment) => segment.lang)).toEqual(["en", "en", "en", "en", "en"]);
+  });
+
+  it("英語の字幕がないブロックは飛ばし、次に簡単なブロックを英語にする", () => {
+    const japaneseOnly: Block = { startMs: 20000, endMs: 21000, cues: { ja: [{ startMs: 20000, endMs: 21000, text: "日本語" }], en: [] } };
+    const plan = createMazePlan({
+      blocks: [japaneseOnly, ...blocks],
+      englishRatio: 0.5,
+      random: () => 0,
+      difficulty,
+    });
+
+    expect(plan.map((segment) => segment.lang)).toEqual(["ja", "en", "en", "ja", "en", "ja"]);
   });
 });

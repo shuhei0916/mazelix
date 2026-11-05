@@ -41,6 +41,25 @@ describe("字幕を maze する（シナリオ）", () => {
   });
 });
 
+describe("英文の難易度を使って maze する（シナリオ）", () => {
+  const hard: Cue = { startMs: 1000, endMs: 2000, text: "THE PROBABILITY IS NEGLIGIBLE." };
+  const easy: Cue = { startMs: 3000, endMs: 4000, text: "I DON'T KNOW." };
+  const ja1: Cue = { startMs: 1000, endMs: 2000, text: "可能性はほぼない" };
+  const ja2: Cue = { startMs: 3000, endMs: 4000, text: "分からない" };
+  const zipf: Record<string, number> = { i: 6.5, "don't": 6.2, know: 6.0, the: 7.7, is: 7.0, probability: 4.0, negligible: 3.4 };
+
+  it("英語の割合 50% なら、簡単な英文のセリフを英語にする", () => {
+    const maze = prepareMaze(
+      { ja: [ja1, ja2], en: [hard, easy] },
+      // 誤差拡散だけなら 1 つ目のセリフが英語になる起点
+      { englishRatio: 0.5, random: () => 0.5, wordFrequency: (word) => zipf[word] },
+    );
+
+    expect(subtitleTextAt(maze, 1500)).toBe("可能性はほぼない");
+    expect(subtitleTextAt(maze, 3500)).toBe("I don't know.");
+  });
+});
+
 describe("prepareMaze", () => {
   it("英語 CC の効果音の説明を取り除き、大文字だけの英文を整える", () => {
     const maze = prepareMaze(

@@ -11,7 +11,7 @@ Chrome ウェブストアで審査中です（v0.1.0、2026-10-23 提出）。
 
 1. Netflix が読み込む動画情報（マニフェスト）から、日本語と英語の字幕トラックを見つける
 2. 日英の字幕ファイル（IMSC 1.1 / TTML）を取得して、字幕の配列に変換する
-3. 日英どちらかの字幕が途切れずに続く範囲を「ブロック」にまとめ、ブロックごとに表示する言語を決める（英語の割合はツールバーのアイコンから設定できる。初期値は 50%）
+3. 日英どちらかの字幕が途切れずに続く範囲を「ブロック」にまとめ、ブロックごとに表示する言語を決める。英語の割合（ツールバーのアイコンから設定できる。初期値は 50%）の数だけ、英文の簡単なブロックから順に英語にする。英文の難しさは、いちばん珍しい単語の頻度で測る
 4. 動画の再生位置に合わせて、選ばれた言語の字幕を動画の上に重ねて表示し、Netflix 標準の字幕は隠す
 
 言語が切り替わるのはセリフの間だけなので、字幕が途中で切れたり、2 つの言語が同時に出たりしません。
@@ -52,8 +52,14 @@ npm run zip         # Chrome ウェブストアに提出する zip を作る
 |---|---|
 | `src/domain/` | 字幕を maze するロジック（Netflix にも Chrome にも依存しない純粋な関数） |
 | `src/netflix/` | Netflix の字幕形式やマニフェストの扱い、字幕の表示 |
+| `src/data/` | 同梱するデータ（英単語の頻度。`scripts/build-word-frequency.py` で作る） |
 | `src/popup/` | 英語の割合を設定するポップアップの部品 |
 | `src/settings.ts` | 設定（英語の割合）の保存と監視 |
 | `entrypoints/` | Chrome に読み込まれる content script とポップアップ（WXT のエントリーポイント） |
 | `public/icon/` | 拡張機能のアイコン |
 | `docs/chrome-web-store.md` | Chrome ウェブストアの掲載情報の下書き |
+
+## クレジット
+
+英文の難しさを測るための英単語の頻度（`src/data/en-word-frequency.txt`）は、Robyn Speer さんの [wordfreq](https://github.com/rspeer/wordfreq) のデータから作ったもので、[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) で配布します。
+wordfreq には [SUBTLEX](https://www.ugent.be/pp/experimentele-psychologie/en/research/documents/subtlexus)（Brysbaert ほか。SUBTLEX は自由に使えるデータです）、[OpenSubtitles](http://www.opensubtitles.org/)（OPUS OpenSubtitles 2018 経由）、[Google Books Ngrams](http://books.google.com/ngrams)、Wikipedia などのデータが含まれています。
