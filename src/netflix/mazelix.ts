@@ -69,6 +69,8 @@ export function startMazelix({
   let latestLoad = 0;
   // 辞書を開いている単語の要素
   let lookedUpWord: HTMLElement | undefined;
+  // 動画を包む要素（字幕と辞書の位置の基準）
+  let player: HTMLElement | undefined;
   const closeDictionary = () => {
     lookedUpWord = undefined;
     dictionary.hidden = true;
@@ -89,14 +91,18 @@ export function startMazelix({
     // 引いている間に、別の単語をクリックしたり閉じたりしていたら表示しない
     if (lookedUpWord !== element) return;
     showDefinitions(dictionary, word, definitions);
-    const player = dictionary.parentElement;
     if (!player) return;
+    const playerRect = player.getBoundingClientRect();
     const { left, bottom } = popupPosition(
       element.getBoundingClientRect(),
-      player.getBoundingClientRect(),
+      playerRect,
       dictionary.offsetWidth,
     );
-    Object.assign(dictionary.style, { left: `${left}px`, bottom: `${bottom}px` });
+    // 辞書は画面に固定して置くので、動画からの位置を画面からの位置に直す
+    Object.assign(dictionary.style, {
+      left: `${playerRect.left + left}px`,
+      bottom: `${window.innerHeight - playerRect.bottom + bottom}px`,
+    });
   };
   const overlay = createOverlay(document, {
     onWordClick: (word, element) => void openDictionary(word, element),
@@ -194,14 +200,25 @@ export function startMazelix({
     const video = watchedVideo();
     const container = video?.parentElement;
     if (maze && video && container) {
-      if (overlay.parentElement !== container) container.append(overlay, dictionary);
+      player = container;
+      // Netflix は動画の上に操作用の透明な要素を重ねている。動画の親の中に字幕を置くと、
+      // 単語へのマウス操作がその要素に奪われるので、ページ（全画面なら全画面の要素）の
+      // 最後に置いて、いちばん手前に出す
+      const host = document.fullscreenElement ?? document.body;
+      if (host.lastElementChild !== dictionary || overlay.nextElementSibling !== dictionary) {
+        host.append(overlay, dictionary);
+      }
       if (!hideNetflixSubtitles.isConnected) document.head.append(hideNetflixSubtitles);
       overlay.style.fontSize = `${Math.max(16, video.clientHeight * 0.045)}px`;
+      const playerRect = container.getBoundingClientRect();
+      overlay.style.left = `${playerRect.left + playerRect.width / 2}px`;
+      overlay.style.maxWidth = `${playerRect.width * 0.8}px`;
       const controls = document.querySelector(BOTTOM_CONTROLS);
-      const bottom = subtitleBottom(
-        container.getBoundingClientRect(),
-        controls?.getBoundingClientRect().top,
-      );
+      // 字幕は画面に固定して置くので、動画の下端からの高さを画面の下端からの高さに直す
+      const bottom =
+        window.innerHeight -
+        playerRect.bottom +
+        subtitleBottom(playerRect, controls?.getBoundingClientRect().top);
       // 単語にマウスを乗せている間や辞書を開いている間は、操作パネルが消えても字幕を下げない。
       // 下げると、クリックしようとした単語がカーソルの下から逃げてしまう。
       // 上げるのは止めない（下のままだと、操作パネルが単語を覆ってクリックを奪う）
@@ -212,6 +229,7 @@ export function startMazelix({
       const { text, lang } = subtitleAt(maze, video.currentTime * 1000);
       updateOverlay(overlay, text, lang);
     } else {
+      player = undefined;
       overlay.remove();
       closeDictionary();
       dictionary.remove();
@@ -223,3 +241,4 @@ export function startMazelix({
 
   return unwatch;
 }
+

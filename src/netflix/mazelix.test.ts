@@ -64,6 +64,8 @@ function netflixPage() {
   document.body.append(player);
   // jsdom はレイアウトしないので、高さ 612px の動画の位置を決めておく
   vi.spyOn(player, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1088, 612));
+  // 動画が画面いっぱいに出ている（字幕は画面に対して固定の位置に置くので、画面の高さを合わせる）
+  vi.spyOn(window, "innerHeight", "get").mockReturnValue(612);
   // テストごとにイベントの待ち受けを外し、前のテストの mazelix が反応しないようにする
   const listening = new AbortController();
   const { signal } = listening;
@@ -462,5 +464,68 @@ describe("英語の字幕の単語をクリックすると、その単語の意�
     page.frame();
 
     expect(dictionary()).toBe("");
+  });
+});
+
+describe("Netflix の操作レイヤーより前面に字幕を出す", () => {
+  // Netflix は動画の上に操作用の透明な要素を重ねていて、動画の親の中に字幕を置くと、
+  // 単語へのマウス操作がその要素に奪われる（再生中にクリックすると一時停止になる）
+  let page: ReturnType<typeof netflixPage>;
+
+  beforeEach(async () => {
+    fakeBrowser.reset();
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    await setEnglishRatio(1);
+    page = netflixPage();
+    page.open("/watch/1");
+    page.receiveManifest(1);
+    await page.expectSubtitle("Run!");
+  });
+
+  afterEach(() => {
+    page.close();
+    document.body.replaceChildren();
+    document.head.replaceChildren();
+    vi.restoreAllMocks();
+  });
+
+  it("字幕と辞書は、ページの最後に、画面に固定して置く", () => {
+    const overlay = subtitleOverlay();
+    const dictionary = document.querySelector<HTMLElement>("[data-mazelix=dictionary]");
+
+    expect(overlay?.parentElement).toBe(document.body);
+    expect(dictionary?.parentElement).toBe(document.body);
+    expect(document.body.lastElementChild).toBe(dictionary);
+    expect(overlay?.style.position).toBe("fixed");
+    expect(dictionary?.style.position).toBe("fixed");
+  });
+
+  it("全画面のときは、全画面になっている要素の最後に置く", () => {
+    const fullscreen = document.createElement("div");
+    document.body.append(fullscreen);
+    // jsdom には全画面の API がないので、全画面になっている要素を決めておく
+    Object.defineProperty(document, "fullscreenElement", { configurable: true, get: () => fullscreen });
+
+    try {
+      page.frame();
+
+      expect(subtitleOverlay()?.parentElement).toBe(fullscreen);
+    } finally {
+      Reflect.deleteProperty(document, "fullscreenElement");
+    }
+  });
+
+  it("後から Netflix が要素を足しても、字幕が最後になるよう置き直す", () => {
+    document.body.append(document.createElement("div"));
+
+    page.frame();
+
+    expect(document.body.lastElementChild?.getAttribute("data-mazelix")).toBe("dictionary");
+  });
+
+  it("字幕は動画の横の中央に置く", () => {
+    page.frame();
+
+    expect(subtitleOverlay()?.style.left).toBe("544px");
   });
 });

@@ -38,14 +38,12 @@ export function createOverlay(doc: Document, { onWordClick }: OverlayOptions = {
   const overlay = doc.createElement("div");
   overlay.dataset.mazelix = "subtitle";
   Object.assign(overlay.style, {
-    position: "absolute",
-    left: "50%",
-    bottom: "10%",
+    // 位置（left・bottom・maxWidth）は、動画の位置に合わせて毎フレーム決める
+    position: "fixed",
     // Netflix 標準の字幕のように、操作パネルの出し入れに合わせてなめらかに上下させる
     transition: "bottom 0.2s ease-out",
     transform: "translateX(-50%)",
     zIndex: "2147483647",
-    maxWidth: "80%",
     color: "white",
     textAlign: "center",
     whiteSpace: "pre-line",

@@ -9,7 +9,7 @@ export function createDictionaryPopup(doc: Document, { onClose }: { onClose: () 
   const popup = doc.createElement("div");
   popup.dataset.mazelix = "dictionary";
   Object.assign(popup.style, {
-    position: "absolute",
+    position: "fixed",
     zIndex: "2147483647",
     boxSizing: "border-box",
     maxWidth: "min(480px, 90%)",
