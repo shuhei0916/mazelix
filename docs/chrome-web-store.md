@@ -4,9 +4,9 @@ Chrome ウェブストアのデベロッパー ダッシュボードに入力す
 
 ## ストアの掲載情報
 
-### 名前
+### 名前（manifest の name から決まり、ダッシュボードでは変えられない）
 
-mazelix
+mazelix - Netflix 日英ミックス字幕（ストアの検索で内容が分かるように、2026-11-08 に変更。短い名前 short_name は mazelix）
 
 ### 概要（132 文字以内。manifest の description と同じ）
 
