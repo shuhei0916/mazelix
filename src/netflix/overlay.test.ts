@@ -144,3 +144,47 @@ describe("isPointerOnWord（単語を狙っている間は、字幕を動かさ�
     expect(isPointerOnWord(overlay)).toBe(false);
   });
 });
+
+describe("単語のハイライト（どの単語を引くのか分かるように）", () => {
+  function setUp() {
+    const player = document.createElement("div");
+    const overlay = createOverlay(document);
+    player.append(overlay);
+    updateOverlay(overlay, "Run, Jim!", "en");
+    const [run, jim] = overlay.querySelectorAll<HTMLElement>("[data-mazelix-word]");
+    if (!run || !jim) throw new Error("単語の要素がない");
+    return { player, run, jim };
+  }
+
+  it("マウスが乗っている単語だけをハイライトする", () => {
+    const { run, jim } = setUp();
+
+    jim.dispatchEvent(new MouseEvent("pointerover", { bubbles: true }));
+
+    expect(jim.dataset.mazelixHover).toBe("");
+    expect(jim.style.background).not.toBe("");
+    expect(run.dataset.mazelixHover).toBeUndefined();
+    expect(run.style.background).toBe("");
+  });
+
+  it("マウスが単語から離れたら、ハイライトを消す", () => {
+    const { player, jim } = setUp();
+    jim.dispatchEvent(new MouseEvent("pointerover", { bubbles: true }));
+
+    jim.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: player }));
+
+    expect(jim.dataset.mazelixHover).toBeUndefined();
+    expect(jim.style.background).toBe("");
+  });
+
+  it("隣の単語に移ったら、ハイライトも移る", () => {
+    const { run, jim } = setUp();
+    run.dispatchEvent(new MouseEvent("pointerover", { bubbles: true }));
+
+    run.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: jim }));
+    jim.dispatchEvent(new MouseEvent("pointerover", { bubbles: true, relatedTarget: run }));
+
+    expect(run.dataset.mazelixHover).toBeUndefined();
+    expect(jim.dataset.mazelixHover).toBe("");
+  });
+});

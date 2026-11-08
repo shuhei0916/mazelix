@@ -12,8 +12,21 @@ export const POINTER_EVENTS = ["pointerdown", "pointerup", "mousedown", "mouseup
 // マウスが単語に乗っているオーバーレイ
 const pointerOnWord = new WeakSet<HTMLElement>();
 
-const isWord = (target: EventTarget | null) =>
-  target instanceof Element && target.closest("[data-mazelix-word]") !== null;
+const wordOf = (target: EventTarget | null) =>
+  target instanceof Element ? target.closest<HTMLElement>("[data-mazelix-word]") : null;
+
+const isWord = (target: EventTarget | null) => wordOf(target) !== null;
+
+// マウスが乗っている単語を目立たせ、どの単語を引くのか分かるようにする
+function highlight(word: HTMLElement, on: boolean): void {
+  if (on) {
+    word.dataset.mazelixHover = "";
+    Object.assign(word.style, { background: "rgba(255, 255, 255, 0.3)", borderRadius: "0.15em" });
+  } else {
+    delete word.dataset.mazelixHover;
+    Object.assign(word.style, { background: "", borderRadius: "" });
+  }
+}
 
 // マウスが英語の字幕の単語に乗っているか（クリックしようとしている単語を動かさないため）
 export function isPointerOnWord(overlay: HTMLElement): boolean {
@@ -52,9 +65,14 @@ export function createOverlay(doc: Document, { onWordClick }: OverlayOptions = {
     });
   }
   overlay.addEventListener("pointerover", (event) => {
-    if (isWord(event.target)) pointerOnWord.add(overlay);
+    const word = wordOf(event.target);
+    if (!word) return;
+    pointerOnWord.add(overlay);
+    highlight(word, true);
   });
   overlay.addEventListener("pointerout", (event) => {
+    const word = wordOf(event.target);
+    if (word && wordOf(event.relatedTarget) !== word) highlight(word, false);
     if (!isWord(event.relatedTarget)) pointerOnWord.delete(overlay);
   });
   return overlay;
